@@ -58,7 +58,7 @@ void h264_dma_hal_deinit(h264_dma_hal_context_t *hal);
  * @brief  Get DMA interrput of the encoder data
  *
  * @param  hal  Context of the HAL layer
- * 
+ *
  * @return
  *       - The interrupt
  */

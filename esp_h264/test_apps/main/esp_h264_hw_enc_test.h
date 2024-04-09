@@ -20,7 +20,7 @@
  *        step 5: Delete the encoder handle by call `esp_h264_enc_del`.
  *
  * @param  cfg  THe configuration of single hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -40,7 +40,7 @@ esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg);
  *        step 5: Delete the encoder handle by call `esp_h264_enc_dual_del`.
  *
  * @param  cfg  THe configuration of dual Hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -56,7 +56,7 @@ esp_h264_err_t dual_hw_enc_process(esp_h264_enc_cfg_dual_hw_t cfg);
  *        The set/get paramter function can be call in one thread or asynchronous thread.
  *
  * @param  cfg  THe configuration of single hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -72,7 +72,7 @@ esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg);
  *        The set/get paramter function can be call in one thread or asynchronous thread.
  *
  * @param  cfg  THe configuration of dual Hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -89,7 +89,7 @@ esp_h264_err_t dual_hw_enc_thread_test(esp_h264_enc_cfg_dual_hw_t cfg);
  *        The one ROI QP can be changed by `none_roi_delta_qp` in `esp_h264_enc_roi_cfg_t`.
  *
  * @param  cfg  THe configuration of single hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -106,7 +106,7 @@ esp_h264_err_t single_hw_enc_roi_cfg_test(esp_h264_enc_cfg_hw_t cfg);
  *        The one ROI QP can be changed by `none_roi_delta_qp` in `esp_h264_enc_roi_cfg_t`.
  *
  * @param  cfg  THe configuration of dual Hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -118,13 +118,13 @@ esp_h264_err_t single_hw_enc_roi_cfg_test(esp_h264_enc_cfg_hw_t cfg);
 esp_h264_err_t dual_hw_enc_roi_cfg_test(esp_h264_enc_cfg_dual_hw_t cfg);
 
 /**
- * @brief Single hardware encoding. This case is for ROI region test. 
+ * @brief Single hardware encoding. This case is for ROI region test.
  *        If you want use this function, please open the ROI component first.
- *        There are 8 region of ROI, which can be configured less than or equal to 8.Each region is a rectangular box. 
+ *        There are 8 region of ROI, which can be configured less than or equal to 8.Each region is a rectangular box.
  *        The coordinate width, height and QP and its starting position need to be configured.
- *        
+ *
  * @param  cfg  THe configuration of single hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -136,13 +136,13 @@ esp_h264_err_t dual_hw_enc_roi_cfg_test(esp_h264_enc_cfg_dual_hw_t cfg);
 esp_h264_err_t single_hw_enc_roi_reg_test(esp_h264_enc_cfg_hw_t cfg);
 
 /**
- * @brief Dual Hardware encoding. This case is for ROI region test. 
+ * @brief Dual Hardware encoding. This case is for ROI region test.
  *        If you want use this function, please open the ROI component first.
- *        There are 8 region of ROI, which can be configured less than or equal to 8.Each region is a rectangular box. 
+ *        There are 8 region of ROI, which can be configured less than or equal to 8.Each region is a rectangular box.
  *        The coordinate width, height and QP and its starting position need to be configured.
  *
  * @param  cfg  THe configuration of dual Hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -154,13 +154,13 @@ esp_h264_err_t single_hw_enc_roi_reg_test(esp_h264_enc_cfg_hw_t cfg);
 esp_h264_err_t dual_hw_enc_roi_reg_test(esp_h264_enc_cfg_dual_hw_t cfg);
 
 /**
- * @brief Single hardware encoding. This case is for MV test. 
+ * @brief Single hardware encoding. This case is for MV test.
  *        First call `esp_h264_enc_hw_cfg_mv` to configure MV.
  *        Before call `esp_h264_enc_process`, please configure MV packet by `esp_h264_enc_hw_set_mv_pkt`.
  *        After call `esp_h264_enc_process`, get MV length by `esp_h264_enc_hw_get_mv_data_len`
- *        
+ *
  * @param  cfg  THe configuration of single hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -172,13 +172,13 @@ esp_h264_err_t dual_hw_enc_roi_reg_test(esp_h264_enc_cfg_dual_hw_t cfg);
 esp_h264_err_t single_hw_enc_mv_pkt_test(esp_h264_enc_cfg_hw_t cfg);
 
 /**
- * @brief Dual Hardware encoding. This case is for MV test. 
+ * @brief Dual Hardware encoding. This case is for MV test.
  *        First call `esp_h264_enc_hw_cfg_mv` to configure MV.
  *        Before call `esp_h264_enc_dual_process`, please configure MV packet by `esp_h264_enc_hw_set_mv_pkt`.
  *        After call `esp_h264_enc_dual_process`, get MV length by `esp_h264_enc_hw_get_mv_data_len`
  *
  * @param  cfg  THe configuration of dual Hardware encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout

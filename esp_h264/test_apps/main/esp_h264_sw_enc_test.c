@@ -50,29 +50,29 @@ esp_h264_err_t single_sw_enc_thread_test(esp_h264_enc_cfg_sw_t cfg)
 
     ret = esp_h264_enc_get_resolution(param_hd, &res);
     if ((ret != ESP_H264_ERR_OK)
-        || (res.width != cfg.res.width)
-        || (res.height != cfg.res.height)) {
+            || (res.width != cfg.res.width)
+            || (res.height != cfg.res.height)) {
         printf("esp_h264_enc_get_resolution failed .line %d \n", __LINE__);
         goto _exit_;
     }
 
     ret = esp_h264_enc_get_fps(param_hd, &fps);
     if ((ret != ESP_H264_ERR_OK)
-        || (fps != cfg.fps)) {
+            || (fps != cfg.fps)) {
         printf("esp_h264_enc_get_fps failed .line %d \n", __LINE__);
         goto _exit_;
     }
 
     ret = esp_h264_enc_get_gop(param_hd, &gop);
     if ((ret != ESP_H264_ERR_OK)
-        || (gop != cfg.gop)) {
+            || (gop != cfg.gop)) {
         printf("esp_h264_enc_get_gop failed .line %d %d \n", gop, __LINE__);
         goto _exit_;
     }
 
     ret = esp_h264_enc_get_bitrate(param_hd, &rc.bitrate);
     if (ret != ESP_H264_ERR_OK
-        || (rc.bitrate != cfg.rc.bitrate)) {
+            || (rc.bitrate != cfg.rc.bitrate)) {
         printf("esp_h264_enc_get_bitrate failed .line %d \n", __LINE__);
         goto _exit_;
     }
@@ -90,31 +90,31 @@ esp_h264_err_t single_sw_enc_thread_test(esp_h264_enc_cfg_sw_t cfg)
         }
         ret = esp_h264_enc_get_resolution(param_hd, &res);
         if ((ret != ESP_H264_ERR_OK)
-            || (res.width != cfg.res.width)
-            || (res.height != cfg.res.height)) {
+                || (res.width != cfg.res.width)
+                || (res.height != cfg.res.height)) {
             printf("esp_h264_enc_get_resolution failed .line %d \n", __LINE__);
             goto _exit_;
         }
 
         ret = esp_h264_enc_get_fps(param_hd, &fps);
         if ((ret != ESP_H264_ERR_OK)
-            || (fps != cfg.fps)) {
+                || (fps != cfg.fps)) {
             printf("esp_h264_enc_get_fps failed .line %d \n", __LINE__);
             goto _exit_;
         }
 
         ret = esp_h264_enc_get_gop(param_hd, &gop);
         if ((ret != ESP_H264_ERR_OK)
-            || (gop != cfg.gop)) {
-            printf("esp_h264_enc_get_gop failed. GOP %d line %d \n",gop, __LINE__);
+                || (gop != cfg.gop)) {
+            printf("esp_h264_enc_get_gop failed. GOP %d line %d \n", gop, __LINE__);
             goto _exit_;
         }
 
         ret = esp_h264_enc_get_bitrate(param_hd, &rc.bitrate);
         if (ret != ESP_H264_ERR_OK
-            || (rc.bitrate != cfg.rc.bitrate)) {
+                || (rc.bitrate != cfg.rc.bitrate)) {
             printf("esp_h264_enc_get_bitrate failed .line %d \n", __LINE__);
-            printf("RC %d %d \n",(int)rc.bitrate, (int)cfg.rc.bitrate );
+            printf("RC %d %d \n", (int)rc.bitrate, (int)cfg.rc.bitrate );
             goto _exit_;
         }
 
@@ -142,7 +142,7 @@ esp_h264_err_t single_sw_enc_thread_test(esp_h264_enc_cfg_sw_t cfg)
             printf("process failed. line %d \n", __LINE__);
             goto _exit_;
         }
-        if(write_enc_cb(&out_frame) < 0) {
+        if (write_enc_cb(&out_frame) < 0) {
             ret = ESP_H264_ERR_FAIL;
             printf("data error. line %d \n", __LINE__);
             goto _exit_;

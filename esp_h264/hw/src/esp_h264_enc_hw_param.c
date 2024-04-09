@@ -147,21 +147,21 @@ static esp_h264_err_t set_roi_reg(esp_h264_enc_param_hw_handle_t handle, esp_h26
         return ESP_H264_ERR_ARG;
     }
     switch (roi_mode) {
-        case ESP_H264_ROI_MODE_DELTA_QP:
-            ESP_H264_RET_ON_FALSE((roi_reg.qp >= -ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "In ESP_H264_ROI_MODE_DELTA_QP, ROI region QP less than -51");
-            break;
-        case ESP_H264_ROI_MODE_FIX_QP:
-            ESP_H264_RET_ON_FALSE((roi_reg.qp >= 0), ESP_H264_ERR_ARG, TAG, "In ESP_H264_ROI_MODE_FIX_QP, ROI region QP less than 0");
-            break;
-        default:
-            break;
+    case ESP_H264_ROI_MODE_DELTA_QP:
+        ESP_H264_RET_ON_FALSE((roi_reg.qp >= -ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "In ESP_H264_ROI_MODE_DELTA_QP, ROI region QP less than -51");
+        break;
+    case ESP_H264_ROI_MODE_FIX_QP:
+        ESP_H264_RET_ON_FALSE((roi_reg.qp >= 0), ESP_H264_ERR_ARG, TAG, "In ESP_H264_ROI_MODE_FIX_QP, ROI region QP less than 0");
+        break;
+    default:
+        break;
     }
     /* Open the ROI region */
     bool ena_reg = true;
     if (y_size == 0
-        || x_size == 0
-        || roi_reg.len_x == 0
-        || roi_reg.len_y == 0) {
+            || x_size == 0
+            || roi_reg.len_x == 0
+            || roi_reg.len_y == 0) {
         /* Close the ROI region */
         ena_reg = false;
     }
@@ -183,7 +183,7 @@ static esp_h264_err_t cfg_mv(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc
 {
     esp_h264_param_t *param = __containerof(handle, esp_h264_param_t, hw_base);
     if (cfg.mv_fmt >= ESP_H264_MVM_FMT_INVALID || cfg.mv_fmt < ESP_H264_MVM_FMT_ALL
-        || cfg.mv_mode >= ESP_H264_MVM_MODE_INVALID || cfg.mv_mode < ESP_H264_MVM_MODE_DISABLE) {
+            || cfg.mv_mode >= ESP_H264_MVM_MODE_INVALID || cfg.mv_mode < ESP_H264_MVM_MODE_DISABLE) {
         ESP_H264_LOGE(TAG, "Configure is vaild. mv_mode %d mv_fmt %d", cfg.mv_fmt, cfg.mv_mode);
         return ESP_H264_ERR_ARG;
     }
@@ -394,7 +394,7 @@ esp_h264_err_t esp_h264_enc_hw_cfg_dma_db_ref(esp_h264_enc_param_hw_handle_t han
     h264_dma_hal_cfg_ref_dsc(dma2d_hal, (uint32_t)param->dsc_ref, buff_addr, param->mb_width);
     uint32_t size = H264_DMA_DB_12_LINES_ROW_LENGTH * param->mb_width * (param->mb_height - 1)
                     + (H264_DMA_DB_12_LINES_ROW_LENGTH + H264_DMA_DB_4_LINES_ROW_LENGTH) * param->mb_width;
-    buff_addr = (uint32_t)ALIGN_UP((uint32_t)param->db , 8);
+    buff_addr = (uint32_t)ALIGN_UP((uint32_t)param->db, 8);
     cfg_dsc(param->dsc_db[0], H264_DMA_2D_DISABLE, H264_DMA_MODE0, size & H264_DMA_MAX_SIZE, size & H264_DMA_MAX_SIZE, H264_DMA_EOF_END, H264_DMA_OWNER_H264,
             (size >> H264_DMA_SIZE_BIT), (size >> H264_DMA_SIZE_BIT), (uint8_t *)buff_addr, param->dsc_db[0]);
     cfg_dsc(param->dsc_db[1], H264_DMA_2D_DISABLE, H264_DMA_MODE0, size & H264_DMA_MAX_SIZE, size & H264_DMA_MAX_SIZE, H264_DMA_EOF_END, H264_DMA_OWNER_H264,
@@ -482,9 +482,9 @@ esp_h264_err_t esp_h264_enc_hw_get_mbres(esp_h264_enc_param_hw_handle_t handle, 
 esp_h264_err_t esp_h264_enc_hw_res_check(uint16_t width, uint16_t height)
 {
     if ((width >= ESP_H264_MIN_WIDTH)
-        && (width <= ESP_H264_MAX_WIDTH)
-        && (height >= ESP_H264_MIN_HEIGHT)
-        && (height <= ESP_H264_MAX_HEIGHT)) {
+            && (width <= ESP_H264_MAX_WIDTH)
+            && (height >= ESP_H264_MIN_HEIGHT)
+            && (height <= ESP_H264_MAX_HEIGHT)) {
         return ESP_H264_ERR_OK;
     }
     return ESP_H264_ERR_FAIL;

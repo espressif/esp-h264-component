@@ -56,7 +56,7 @@ enum {
 /*------------------------------------------------------------------------------
     3. Data types
 ------------------------------------------------------------------------------*/
-typedef void* h264bsd_hd_t;
+typedef void *h264bsd_hd_t;
 
 
 /*------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ typedef void* h264bsd_hd_t;
 
 u32 h264bsdInit(h264bsd_hd_t hd, u32 noOutputReordering);
 // u32 h264bsdDecode(h264bsd_hd_t hd, u8 *byteStrm, u32 len, u8 **picture, u32 *width, u32 *height);
-u32 h264bsdDecode(h264bsd_hd_t hd, u8 *byteStrm, u32* len, u8 **picture, u32 *width, u32 *height);
+u32 h264bsdDecode(h264bsd_hd_t hd, u8 *byteStrm, u32 *len, u8 **picture, u32 *width, u32 *height);
 void h264bsdShutdown(h264bsd_hd_t hd);
 u32 h264bsdDecodeInternal(h264bsd_hd_t hd, u8 *byteStrm, u32 len, u32 *readBytes, u32 *width, u32 *height);
 h264bsd_hd_t h264bsdAlloc();
@@ -78,4 +78,3 @@ const char *esp_tinyh264_get_version(void);
 #endif
 
 #endif /* #ifdef H264SWDEC_DECODER_H */
-

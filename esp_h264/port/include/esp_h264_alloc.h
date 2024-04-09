@@ -30,7 +30,7 @@
  *       - NULL    Failure
  *       - others  A pointer to the memory allocated on success
  */
-void* esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uint32_t* actual_size, uint32_t caps);
+void *esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps);
 
 /**
  * @brief  Allocate a chunk of memory as preference in decreasing order. And helper function for calloc a cache aligned data memory buffer
@@ -44,4 +44,4 @@ void* esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uin
  *       - NULL    Failure
  *       - others  A pointer to the memory allocated on success
  */
-void* esp_h264_calloc_prefer(uint32_t n, uint32_t size, uint32_t* actual_size, uint32_t caps1, uint32_t caps2);
+void *esp_h264_calloc_prefer(uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps1, uint32_t caps2);

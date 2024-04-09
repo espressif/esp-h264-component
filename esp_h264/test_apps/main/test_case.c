@@ -16,7 +16,7 @@ static int16_t res_width1 = 128;
 static int16_t res_height1 = 128;
 
 TEST_CASE("hw_enc_single_hw_enc_gop_test", "[esp_h264]")
-{  
+{
     for (int16_t gop = 1; gop < 256; gop++) {
         esp_h264_enc_cfg_hw_t cfg = { 0 };
         cfg.gop = gop;
@@ -27,7 +27,7 @@ TEST_CASE("hw_enc_single_hw_enc_gop_test", "[esp_h264]")
         cfg.rc.qp_min = 26;
         cfg.rc.qp_max = 26;
         cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_process(cfg));
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_process(cfg));
     }
 }
 
@@ -43,7 +43,7 @@ TEST_CASE("hw_enc_single_hw_enc_fps_test", "[esp_h264]")
         cfg.rc.qp_min = 26;
         cfg.rc.qp_max = 26;
         cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_process(cfg));
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_process(cfg));
     }
 }
 
@@ -59,7 +59,7 @@ TEST_CASE("hw_enc_single_hw_enc_qp_test", "[esp_h264]")
         cfg.rc.qp_min = qp < 0 ? 0 : qp;
         cfg.rc.qp_max = (cfg.rc.qp_min + 1) > 51 ? 51 : (cfg.rc.qp_min + 1);
         cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_process(cfg));
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_process(cfg));
     }
 }
 
@@ -84,7 +84,7 @@ TEST_CASE("hw_enc_dual_hw_enc_gop_test", "[esp_h264]")
         cfg.cfg1.rc.qp_min = 26;
         cfg.cfg1.rc.qp_max = 26;
         cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,dual_hw_enc_process(cfg));
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_process(cfg));
     }
 }
 
@@ -109,7 +109,7 @@ TEST_CASE("hw_enc_dual_hw_enc_fps_test", "[esp_h264]")
         cfg.cfg1.rc.qp_min = 26;
         cfg.cfg1.rc.qp_max = 26;
         cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,dual_hw_enc_process(cfg));
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_process(cfg));
     }
 }
 
@@ -134,7 +134,7 @@ TEST_CASE("hw_enc_dual_hw_enc_qp_test", "[esp_h264]")
         cfg.cfg1.rc.qp_min = qp < 0 ? 0 : (qp + 1) % 51;
         cfg.cfg1.rc.qp_max = (cfg.cfg1.rc.qp_min + 1) > 51 ? 51 : (cfg.cfg1.rc.qp_min + 1);
         cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,dual_hw_enc_process(cfg));
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_process(cfg));
     }
 }
 
@@ -149,7 +149,7 @@ TEST_CASE("hw_enc_set_get_param_single_hw_enc_thread_test", "[esp_h264]")
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
     cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
-    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_thread_test(cfg));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_thread_test(cfg));
 }
 
 TEST_CASE("hw_enc_set_get_param_dual_hw_enc_thread_test", "[esp_h264]")
@@ -662,7 +662,7 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
 
     esp_h264_enc_param_hw_handle_t param_hd1 = NULL;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_get_param_hd1(enc_dual, &param_hd1));
- 
+
     /* enc is NULL */
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_open(NULL));
 
@@ -754,7 +754,7 @@ TEST_CASE("sw_dec_error_test", "[esp_h264]")
 
     cfg.pic_type = ESP_H264_RAW_FMT_I420;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_new(&cfg, &dec));
- 
+
     esp_h264_dec_param_handle_t param_hd = NULL;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_get_param_hd(dec, &param_hd));
 
@@ -784,7 +784,7 @@ TEST_CASE("sw_dec_data_error_test", "[esp_h264]")
     uint8_t *yuv = NULL;
     esp_h264_dec_cfg_sw_t cfg;
     cfg.pic_type = ESP_H264_RAW_FMT_I420;
-    
+
     //start code error
     uint32_t inbuf_len = 4;
     uint8_t inbuf[30] = {0x00, 0x00, 0x00, 0x02};
@@ -820,7 +820,7 @@ TEST_CASE("sw_dec_data_error_test", "[esp_h264]")
     inbuf[6] = 0xc0;
     inbuf[7] = 0xff;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_FAIL,  single_sw_dec_process(cfg, inbuf, inbuf_len, yuv));
- 
+
     //SPS error
     inbuf_len = 10;
     inbuf[7] = 0x0b;
@@ -878,7 +878,7 @@ TEST_CASE("sw_enc_set_get_param_single_thread_test", "[esp_h264]")
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
     cfg.pic_type = ESP_H264_RAW_FMT_I420;
-    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_sw_enc_thread_test(cfg));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_sw_enc_thread_test(cfg));
 }
 
 /* error test */
@@ -1023,4 +1023,3 @@ TEST_CASE("sw_enc_error_test", "[esp_h264]")
 
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
 }
-

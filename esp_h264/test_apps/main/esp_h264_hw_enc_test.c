@@ -17,17 +17,17 @@ static int write_mvm(esp_h264_enc_mvm_pkt_t *mv_pkt, uint32_t length)
 }
 
 esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg)
-{   
+{
     esp_h264_enc_in_frame_t in_frame = {0};
     esp_h264_enc_out_frame_t out_frame = {0};
     esp_h264_err_t ret = ESP_H264_ERR_OK;
     esp_h264_enc_handle_t enc = NULL;
-    uint16_t width = ((cfg.res.width +15) >> 4 << 4);
-    uint16_t height = ((cfg.res.height+15) >> 4 << 4); 
+    uint16_t width = ((cfg.res.width + 15) >> 4 << 4);
+    uint16_t height = ((cfg.res.height + 15) >> 4 << 4);
     in_frame.raw_data.len = ( width * height + (width * height >> 1));
     in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
     if (!in_frame.raw_data.buffer) {
-        printf("mem allocation failed.line %d %d %d %d\n",width ,  height, (int)in_frame.raw_data.len, __LINE__);
+        printf("mem allocation failed.line %d %d %d %d\n", width,  height, (int)in_frame.raw_data.len, __LINE__);
         goto _exit_;
     }
     out_frame.raw_data.len = in_frame.raw_data.len;
@@ -51,7 +51,7 @@ esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg)
         if (ret_w <= 0) {
             break;
         }
-        ret = esp_h264_enc_process(enc, &in_frame, &out_frame);       
+        ret = esp_h264_enc_process(enc, &in_frame, &out_frame);
         if (ret != ESP_H264_ERR_OK) {
             printf("process failed. line %d \n", __LINE__);
             goto _exit_;
@@ -63,7 +63,7 @@ _exit_:
     ret = esp_h264_enc_del(enc);
     if (in_frame.raw_data.buffer) {
         esp_h264_free(in_frame.raw_data.buffer);
-    }    
+    }
     if (out_frame.raw_data.buffer) {
         esp_h264_free(out_frame.raw_data.buffer);
     }
@@ -77,8 +77,8 @@ esp_h264_err_t dual_hw_enc_process(esp_h264_enc_cfg_dual_hw_t cfg)
     esp_h264_err_t ret = ESP_H264_ERR_OK;
     esp_h264_enc_dual_handle_t enc = NULL;
     int32_t out_length[2];
-    int16_t width[2] = { ((cfg.cfg0.res.width +15) >> 4 << 4), ((cfg.cfg1.res.width +15) >> 4 << 4)};
-    int16_t height[2] = { ((cfg.cfg0.res.height +15) >> 4 << 4), ((cfg.cfg1.res.height +15) >> 4 << 4)};
+    int16_t width[2] = { ((cfg.cfg0.res.width + 15) >> 4 << 4), ((cfg.cfg1.res.width + 15) >> 4 << 4)};
+    int16_t height[2] = { ((cfg.cfg0.res.height + 15) >> 4 << 4), ((cfg.cfg1.res.height + 15) >> 4 << 4)};
     out_length[0] = (width[0] * height[0] + (width[0] * height[0] >> 1));
     out_length[1] = (width[1] * height[1] + (width[1] * height[1] >> 1));
     for (int16_t i = 0; i < 2; i++) {
@@ -194,29 +194,29 @@ esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg)
 
     ret = esp_h264_enc_get_resolution(&param_hd->base, &res);
     if ((ret != ESP_H264_ERR_OK)
-        || (res.width != cfg.res.width)
-        || (res.height != cfg.res.height)) {
+            || (res.width != cfg.res.width)
+            || (res.height != cfg.res.height)) {
         printf("esp_h264_enc_get_resolution failed .line %d \n", __LINE__);
         goto _exit_;
     }
 
     ret = esp_h264_enc_get_fps(&param_hd->base, &fps);
     if ((ret != ESP_H264_ERR_OK)
-        || (fps != cfg.fps)) {
+            || (fps != cfg.fps)) {
         printf("esp_h264_enc_get_fps failed .line %d \n", __LINE__);
         goto _exit_;
     }
 
     ret = esp_h264_enc_get_gop(&param_hd->base, &gop);
     if ((ret != ESP_H264_ERR_OK)
-        || (gop != cfg.gop)) {
+            || (gop != cfg.gop)) {
         printf("esp_h264_enc_get_gop failed .line %d \n", __LINE__);
         goto _exit_;
     }
 
     ret = esp_h264_enc_get_bitrate(&param_hd->base, &rc.bitrate);
     if (ret != ESP_H264_ERR_OK
-        || (rc.bitrate != cfg.rc.bitrate)) {
+            || (rc.bitrate != cfg.rc.bitrate)) {
         printf("esp_h264_enc_get_bitrate failed .line %d \n", __LINE__);
         goto _exit_;
     }
@@ -234,29 +234,29 @@ esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg)
         }
         ret |= esp_h264_enc_get_resolution(&param_hd->base, &res);
         if ((ret != ESP_H264_ERR_OK)
-            || (res.width != cfg.res.width)
-            || (res.height != cfg.res.height)) {
+                || (res.width != cfg.res.width)
+                || (res.height != cfg.res.height)) {
             printf("esp_h264_enc_get_resolution failed .line %d \n", __LINE__);
             goto _exit_;
         }
 
         ret |= esp_h264_enc_get_fps(&param_hd->base, &fps);
         if ((ret != ESP_H264_ERR_OK)
-            || (fps != cfg.fps)) {
+                || (fps != cfg.fps)) {
             printf("esp_h264_enc_get_fps failed .line %d \n", __LINE__);
             goto _exit_;
         }
 
         ret |= esp_h264_enc_get_gop(&param_hd->base, &gop);
         if ((ret != ESP_H264_ERR_OK)
-            || (gop != cfg.gop)) {
+                || (gop != cfg.gop)) {
             printf("esp_h264_enc_get_gop failed .line %d \n", __LINE__);
             goto _exit_;
         }
 
         ret |= esp_h264_enc_get_bitrate(&param_hd->base, &rc.bitrate);
         if (ret != ESP_H264_ERR_OK
-            || (rc.bitrate != cfg.rc.bitrate)) {
+                || (rc.bitrate != cfg.rc.bitrate)) {
             printf("esp_h264_enc_get_bitrate failed .line %d \n", __LINE__);
             goto _exit_;
         }
@@ -414,15 +414,15 @@ esp_h264_err_t dual_hw_enc_thread_test(esp_h264_enc_cfg_dual_hw_t cfg)
         }
         ret = esp_h264_enc_get_resolution(&param_hd->base, &res);
         if ((ret != ESP_H264_ERR_OK)
-            || (res.width != base_cfg.res.width)
-            || (res.height != base_cfg.res.height)) {
+                || (res.width != base_cfg.res.width)
+                || (res.height != base_cfg.res.height)) {
             printf("esp_h264_enc_get_resolution failed .line %d \n", __LINE__);
             goto _exit_dual_;
         }
 
         ret = esp_h264_enc_get_fps(&param_hd->base, &fps);
         if ((ret != ESP_H264_ERR_OK)
-            || (fps != base_cfg.fps)) {
+                || (fps != base_cfg.fps)) {
             printf("esp_h264_enc_get_fps failed .line %d \n", __LINE__);
             goto _exit_dual_;
         }
@@ -430,14 +430,14 @@ esp_h264_err_t dual_hw_enc_thread_test(esp_h264_enc_cfg_dual_hw_t cfg)
         ret = esp_h264_enc_get_gop(&param_hd->base, &gop_tmp);
 
         if ((ret != ESP_H264_ERR_OK)
-            || (gop_tmp != ((gop[0] + gop[1]) >> 1)
-                && gop_tmp != gop[index_c % 2])) {
+                || (gop_tmp != ((gop[0] + gop[1]) >> 1)
+                    && gop_tmp != gop[index_c % 2])) {
             printf("esp_h264_enc_get_gop failed . %d %d %d %d line %d \n", index_c, gop[0], gop[1], gop_tmp, __LINE__);
             goto _exit_dual_;
         }
         ret = esp_h264_enc_get_bitrate(&param_hd->base, &rc.bitrate);
         if (ret != ESP_H264_ERR_OK
-            || (rc.bitrate != base_cfg.rc.bitrate)) {
+                || (rc.bitrate != base_cfg.rc.bitrate)) {
             printf("esp_h264_enc_get_bitrate failed .line %d \n", __LINE__);
             printf("bitrate %d %d \n", (int)rc.bitrate, (int)base_cfg.rc.bitrate);
             goto _exit_dual_;
@@ -531,9 +531,9 @@ esp_h264_err_t single_hw_enc_roi_cfg_test(esp_h264_enc_cfg_hw_t cfg)
             write_enc_cb(&out_frame);
             ret = esp_h264_enc_hw_get_roi_cfg_info(param_hd, &cfg_get);
             if (ret != ESP_H264_ERR_OK
-                || cfg_get.roi_mode != roi_cfg.roi_mode
-                || ((cfg_get.roi_mode != ESP_H264_ROI_MODE_DISABLE)
-                    && (cfg_get.none_roi_delta_qp != roi_cfg.none_roi_delta_qp))) {
+                    || cfg_get.roi_mode != roi_cfg.roi_mode
+                    || ((cfg_get.roi_mode != ESP_H264_ROI_MODE_DISABLE)
+                        && (cfg_get.none_roi_delta_qp != roi_cfg.none_roi_delta_qp))) {
                 printf("ROI process error. %d %d %d line %d \n", cfg_get.roi_mode, cfg_get.none_roi_delta_qp, roi_cfg.none_roi_delta_qp, __LINE__);
                 goto _exit_;
             }
@@ -650,9 +650,9 @@ esp_h264_err_t dual_hw_enc_roi_cfg_test(esp_h264_enc_cfg_dual_hw_t cfg)
             }
             ret = esp_h264_enc_hw_get_roi_cfg_info(param_hd, &cfg_get);
             if (ret != ESP_H264_ERR_OK
-                || cfg_get.roi_mode != roi_cfg.roi_mode
-                || ((cfg_get.roi_mode != ESP_H264_ROI_MODE_DISABLE)
-                    && (cfg_get.none_roi_delta_qp != roi_cfg.none_roi_delta_qp))) {
+                    || cfg_get.roi_mode != roi_cfg.roi_mode
+                    || ((cfg_get.roi_mode != ESP_H264_ROI_MODE_DISABLE)
+                        && (cfg_get.none_roi_delta_qp != roi_cfg.none_roi_delta_qp))) {
                 printf("ROI process error. %d %d %d line %d \n", cfg_get.roi_mode, cfg_get.none_roi_delta_qp, roi_cfg.none_roi_delta_qp, __LINE__);
                 goto _exit_dual_;
             }
@@ -796,20 +796,20 @@ esp_h264_err_t single_hw_enc_roi_reg_test(esp_h264_enc_cfg_hw_t cfg)
                 ret = esp_h264_enc_hw_get_roi_region(param_hd, &roi_reg1[i]);
                 if (roi_cfg.roi_mode == ESP_H264_ROI_MODE_DISABLE) {
                     if (ret != ESP_H264_ERR_OK
-                        || roi_reg1[i].x != 0
-                        || roi_reg1[i].y != 0
-                        || roi_reg1[i].len_x != 0
-                        || roi_reg1[i].len_y != 0
-                        || roi_reg1[i].qp != 0) {
+                            || roi_reg1[i].x != 0
+                            || roi_reg1[i].y != 0
+                            || roi_reg1[i].len_x != 0
+                            || roi_reg1[i].len_y != 0
+                            || roi_reg1[i].qp != 0) {
                         goto _exit_;
                     }
                 } else {
                     if (ret != ESP_H264_ERR_OK
-                        || roi_reg1[i].x != roi_reg[i].x
-                        || roi_reg1[i].y != roi_reg[i].y
-                        || roi_reg1[i].len_x != roi_reg[i].len_x
-                        || roi_reg1[i].len_y != roi_reg[i].len_y
-                        || roi_reg1[i].qp != roi_reg[i].qp) {
+                            || roi_reg1[i].x != roi_reg[i].x
+                            || roi_reg1[i].y != roi_reg[i].y
+                            || roi_reg1[i].len_x != roi_reg[i].len_x
+                            || roi_reg1[i].len_y != roi_reg[i].len_y
+                            || roi_reg1[i].qp != roi_reg[i].qp) {
                         goto _exit_;
                     }
                 }
@@ -979,20 +979,20 @@ esp_h264_err_t dual_hw_enc_roi_reg_test(esp_h264_enc_cfg_dual_hw_t cfg)
                 ret = esp_h264_enc_hw_get_roi_region(param_hd, &roi_reg1[i]);
                 if (roi_cfg.roi_mode == ESP_H264_ROI_MODE_DISABLE) {
                     if (ret != ESP_H264_ERR_OK
-                        || roi_reg1[i].x != 0
-                        || roi_reg1[i].y != 0
-                        || roi_reg1[i].len_x != 0
-                        || roi_reg1[i].len_y != 0
-                        || roi_reg1[i].qp != 0) {
+                            || roi_reg1[i].x != 0
+                            || roi_reg1[i].y != 0
+                            || roi_reg1[i].len_x != 0
+                            || roi_reg1[i].len_y != 0
+                            || roi_reg1[i].qp != 0) {
                         goto _exit_dual_;
                     }
                 } else {
                     if (ret != ESP_H264_ERR_OK
-                        || roi_reg1[i].x != roi_reg[i].x
-                        || roi_reg1[i].y != roi_reg[i].y
-                        || roi_reg1[i].len_x != roi_reg[i].len_x
-                        || roi_reg1[i].len_y != roi_reg[i].len_y
-                        || roi_reg1[i].qp != roi_reg[i].qp) {
+                            || roi_reg1[i].x != roi_reg[i].x
+                            || roi_reg1[i].y != roi_reg[i].y
+                            || roi_reg1[i].len_x != roi_reg[i].len_x
+                            || roi_reg1[i].len_y != roi_reg[i].len_y
+                            || roi_reg1[i].qp != roi_reg[i].qp) {
                         goto _exit_dual_;
                     }
                 }

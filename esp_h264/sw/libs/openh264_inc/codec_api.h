@@ -267,72 +267,72 @@ typedef unsigned char bool;
 * @brief Endocder definition
 */
 class ISVCEncoder {
- public:
-  /**
-  * @brief  Initialize the encoder
-  * @param  pParam  basic encoder parameter
-  * @return CM_RETURN: 0 - success; otherwise - failed;
-  */
-  virtual int32_t EXTAPI Initialize (const SEncParamBase* pParam) = 0;
+public:
+    /**
+    * @brief  Initialize the encoder
+    * @param  pParam  basic encoder parameter
+    * @return CM_RETURN: 0 - success; otherwise - failed;
+    */
+    virtual int32_t EXTAPI Initialize (const SEncParamBase *pParam) = 0;
 
-  /**
-  * @brief  Initilaize encoder by using extension parameters.
-  * @param  pParam  extension parameter for encoder
-  * @return CM_RETURN: 0 - success; otherwise - failed;
-  */
-  virtual int32_t EXTAPI InitializeExt (const SEncParamExt* pParam) = 0;
+    /**
+    * @brief  Initilaize encoder by using extension parameters.
+    * @param  pParam  extension parameter for encoder
+    * @return CM_RETURN: 0 - success; otherwise - failed;
+    */
+    virtual int32_t EXTAPI InitializeExt (const SEncParamExt *pParam) = 0;
 
-  /**
-  * @brief   Get the default extension parameters.
-  *          If you want to change some parameters of encoder, firstly you need to get the default encoding parameters,
-  *          after that you can change part of parameters you want to.
-  * @param   pParam  extension parameter for encoder
-  * @return  CM_RETURN: 0 - success; otherwise - failed;
-  * */
-  virtual int32_t EXTAPI GetDefaultParams (SEncParamExt* pParam) = 0;
-  /// uninitialize the encoder
-  virtual int32_t EXTAPI Uninitialize() = 0;
+    /**
+    * @brief   Get the default extension parameters.
+    *          If you want to change some parameters of encoder, firstly you need to get the default encoding parameters,
+    *          after that you can change part of parameters you want to.
+    * @param   pParam  extension parameter for encoder
+    * @return  CM_RETURN: 0 - success; otherwise - failed;
+    * */
+    virtual int32_t EXTAPI GetDefaultParams (SEncParamExt *pParam) = 0;
+    /// uninitialize the encoder
+    virtual int32_t EXTAPI Uninitialize() = 0;
 
-  /**
-  * @brief Encode one frame
-  * @param kpSrcPic the pointer to the source luminance plane
-  *        chrominance data:
-  *        CbData = kpSrc  +  m_iMaxPicWidth * m_iMaxPicHeight;
-  *        CrData = CbData + (m_iMaxPicWidth * m_iMaxPicHeight)/4;
-  *        the application calling this interface needs to ensure the data validation between the location
-  * @param pBsInfo output bit stream
-  * @return  0 - success; otherwise -failed;
-  */
-  virtual int32_t EXTAPI EncodeFrame (const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo) = 0;
+    /**
+    * @brief Encode one frame
+    * @param kpSrcPic the pointer to the source luminance plane
+    *        chrominance data:
+    *        CbData = kpSrc  +  m_iMaxPicWidth * m_iMaxPicHeight;
+    *        CrData = CbData + (m_iMaxPicWidth * m_iMaxPicHeight)/4;
+    *        the application calling this interface needs to ensure the data validation between the location
+    * @param pBsInfo output bit stream
+    * @return  0 - success; otherwise -failed;
+    */
+    virtual int32_t EXTAPI EncodeFrame (const SSourcePicture *kpSrcPic, SFrameBSInfo *pBsInfo) = 0;
 
-  /**
-  * @brief  Encode the parameters from output bit stream
-  * @param  pBsInfo output bit stream
-  * @return 0 - success; otherwise - failed;
-  */
-  virtual int32_t EXTAPI EncodeParameterSets (SFrameBSInfo* pBsInfo) = 0;
+    /**
+    * @brief  Encode the parameters from output bit stream
+    * @param  pBsInfo output bit stream
+    * @return 0 - success; otherwise - failed;
+    */
+    virtual int32_t EXTAPI EncodeParameterSets (SFrameBSInfo *pBsInfo) = 0;
 
-  /**
-  * @brief  Force encoder to encoder frame as IDR if bIDR set as true
-  * @param  bIDR true: force encoder to encode frame as IDR frame;false, return 1 and nothing to do
-  * @return 0 - success; otherwise - failed;
-  */
-  virtual int32_t EXTAPI ForceIntraFrame (bool bIDR, int32_t iLayerId = -1) = 0;
+    /**
+    * @brief  Force encoder to encoder frame as IDR if bIDR set as true
+    * @param  bIDR true: force encoder to encode frame as IDR frame;false, return 1 and nothing to do
+    * @return 0 - success; otherwise - failed;
+    */
+    virtual int32_t EXTAPI ForceIntraFrame (bool bIDR, int32_t iLayerId = -1) = 0;
 
-  /**
-  * @brief   Set option for encoder, detail option type, please refer to enumurate ENCODER_OPTION.
-  * @param   pOption option for encoder such as InDataFormat, IDRInterval, SVC Encode Param, Frame Rate, Bitrate,...
-  * @return  CM_RETURN: 0 - success; otherwise - failed;
-  */
-  virtual int32_t EXTAPI SetOption (ENCODER_OPTION eOptionId, void* pOption) = 0;
+    /**
+    * @brief   Set option for encoder, detail option type, please refer to enumurate ENCODER_OPTION.
+    * @param   pOption option for encoder such as InDataFormat, IDRInterval, SVC Encode Param, Frame Rate, Bitrate,...
+    * @return  CM_RETURN: 0 - success; otherwise - failed;
+    */
+    virtual int32_t EXTAPI SetOption (ENCODER_OPTION eOptionId, void *pOption) = 0;
 
-  /**
-  * @brief   Get option for encoder, detail option type, please refer to enumurate ENCODER_OPTION.
-  * @param   pOption option for encoder such as InDataFormat, IDRInterval, SVC Encode Param, Frame Rate, Bitrate,...
-  * @return  CM_RETURN: 0 - success; otherwise - failed;
-  */
-  virtual int32_t EXTAPI GetOption (ENCODER_OPTION eOptionId, void* pOption) = 0;
-  virtual ~ISVCEncoder() {}
+    /**
+    * @brief   Get option for encoder, detail option type, please refer to enumurate ENCODER_OPTION.
+    * @param   pOption option for encoder such as InDataFormat, IDRInterval, SVC Encode Param, Frame Rate, Bitrate,...
+    * @return  CM_RETURN: 0 - success; otherwise - failed;
+    */
+    virtual int32_t EXTAPI GetOption (ENCODER_OPTION eOptionId, void *pOption) = 0;
+    virtual ~ISVCEncoder() {}
 };
 
 
@@ -341,127 +341,127 @@ class ISVCEncoder {
 * @brief Decoder definition
 */
 class ISVCDecoder {
- public:
+public:
 
-  /**
-  * @brief  Initilaize decoder
-  * @param  pParam  parameter for decoder
-  * @return 0 - success; otherwise - failed;
-  */
-  virtual long EXTAPI Initialize (const SDecodingParam* pParam) = 0;
+    /**
+    * @brief  Initilaize decoder
+    * @param  pParam  parameter for decoder
+    * @return 0 - success; otherwise - failed;
+    */
+    virtual long EXTAPI Initialize (const SDecodingParam *pParam) = 0;
 
-  /// Uninitialize the decoder
-  virtual long EXTAPI Uninitialize() = 0;
+    /// Uninitialize the decoder
+    virtual long EXTAPI Uninitialize() = 0;
 
-  /**
-  * @brief   Decode one frame
-  * @param   pSrc the h264 stream to be decoded
-  * @param   iSrcLen the length of h264 stream
-  * @param   ppDst buffer pointer of decoded data (YUV)
-  * @param   pStride output stride
-  * @param   iWidth output width
-  * @param   iHeight output height
-  * @return  0 - success; otherwise -failed;
-  */
-  virtual DECODING_STATE EXTAPI DecodeFrame (const unsigned char* pSrc,
-      const int32_t iSrcLen,
-      unsigned char** ppDst,
-      int32_t* pStride,
-      int32_t& iWidth,
-      int32_t& iHeight) = 0;
+    /**
+    * @brief   Decode one frame
+    * @param   pSrc the h264 stream to be decoded
+    * @param   iSrcLen the length of h264 stream
+    * @param   ppDst buffer pointer of decoded data (YUV)
+    * @param   pStride output stride
+    * @param   iWidth output width
+    * @param   iHeight output height
+    * @return  0 - success; otherwise -failed;
+    */
+    virtual DECODING_STATE EXTAPI DecodeFrame (const unsigned char *pSrc,
+            const int32_t iSrcLen,
+            unsigned char **ppDst,
+            int32_t *pStride,
+            int32_t &iWidth,
+            int32_t &iHeight) = 0;
 
-  /**
-    * @brief    For slice level DecodeFrameNoDelay() (4 parameters input),
+    /**
+      * @brief    For slice level DecodeFrameNoDelay() (4 parameters input),
+      *           whatever the function return value is, the output data
+      *           of I420 format will only be available when pDstInfo->iBufferStatus == 1,.
+      *           This function will parse and reconstruct the input frame immediately if it is complete
+      *           It is recommended as the main decoding function for H.264/AVC format input
+      * @param   pSrc the h264 stream to be decoded
+      * @param   iSrcLen the length of h264 stream
+      * @param   ppDst buffer pointer of decoded data (YUV)
+      * @param   pDstInfo information provided to API(width, height, etc.)
+      * @return  0 - success; otherwise -failed;
+      */
+    virtual DECODING_STATE EXTAPI DecodeFrameNoDelay (const unsigned char *pSrc,
+            const int32_t iSrcLen,
+            unsigned char **ppDst,
+            SBufferInfo *pDstInfo) = 0;
+
+    /**
+    * @brief    For slice level DecodeFrame2() (4 parameters input),
     *           whatever the function return value is, the output data
     *           of I420 format will only be available when pDstInfo->iBufferStatus == 1,.
-    *           This function will parse and reconstruct the input frame immediately if it is complete
-    *           It is recommended as the main decoding function for H.264/AVC format input
+    *           (e.g., in multi-slice cases, only when the whole picture
+    *           is completely reconstructed, this variable would be set equal to 1.)
     * @param   pSrc the h264 stream to be decoded
     * @param   iSrcLen the length of h264 stream
     * @param   ppDst buffer pointer of decoded data (YUV)
     * @param   pDstInfo information provided to API(width, height, etc.)
     * @return  0 - success; otherwise -failed;
     */
-  virtual DECODING_STATE EXTAPI DecodeFrameNoDelay (const unsigned char* pSrc,
-      const int32_t iSrcLen,
-      unsigned char** ppDst,
-      SBufferInfo* pDstInfo) = 0;
-
-  /**
-  * @brief    For slice level DecodeFrame2() (4 parameters input),
-  *           whatever the function return value is, the output data
-  *           of I420 format will only be available when pDstInfo->iBufferStatus == 1,.
-  *           (e.g., in multi-slice cases, only when the whole picture
-  *           is completely reconstructed, this variable would be set equal to 1.)
-  * @param   pSrc the h264 stream to be decoded
-  * @param   iSrcLen the length of h264 stream
-  * @param   ppDst buffer pointer of decoded data (YUV)
-  * @param   pDstInfo information provided to API(width, height, etc.)
-  * @return  0 - success; otherwise -failed;
-  */
-  virtual DECODING_STATE EXTAPI DecodeFrame2 (const unsigned char* pSrc,
-      const int32_t iSrcLen,
-      unsigned char** ppDst,
-      SBufferInfo* pDstInfo) = 0;
+    virtual DECODING_STATE EXTAPI DecodeFrame2 (const unsigned char *pSrc,
+            const int32_t iSrcLen,
+            unsigned char **ppDst,
+            SBufferInfo *pDstInfo) = 0;
 
 
-  /**
-  * @brief   This function gets a decoded ready frame remaining in buffers after the last frame has been decoded.
-  * Use GetOption with option DECODER_OPTION_NUM_OF_FRAMES_REMAINING_IN_BUFFER to get the number of frames remaining in buffers.
-  * Note that it is only applicable for profile_idc != 66
-  * @param   ppDst buffer pointer of decoded data (YUV)
-  * @param   pDstInfo information provided to API(width, height, etc.)
-  * @return  0 - success; otherwise -failed;
-  */
-  virtual DECODING_STATE EXTAPI FlushFrame (unsigned char** ppDst,
-      SBufferInfo* pDstInfo) = 0;
+    /**
+    * @brief   This function gets a decoded ready frame remaining in buffers after the last frame has been decoded.
+    * Use GetOption with option DECODER_OPTION_NUM_OF_FRAMES_REMAINING_IN_BUFFER to get the number of frames remaining in buffers.
+    * Note that it is only applicable for profile_idc != 66
+    * @param   ppDst buffer pointer of decoded data (YUV)
+    * @param   pDstInfo information provided to API(width, height, etc.)
+    * @return  0 - success; otherwise -failed;
+    */
+    virtual DECODING_STATE EXTAPI FlushFrame (unsigned char **ppDst,
+            SBufferInfo *pDstInfo) = 0;
 
-  /**
-  * @brief   This function parse input bitstream only, and rewrite possible SVC syntax to AVC syntax
-  * @param   pSrc the h264 stream to be decoded
-  * @param   iSrcLen the length of h264 stream
-  * @param   pDstInfo bit stream info
-  * @return  0 - success; otherwise -failed;
-  */
-  virtual DECODING_STATE EXTAPI DecodeParser (const unsigned char* pSrc,
-      const int32_t iSrcLen,
-      SParserBsInfo* pDstInfo) = 0;
+    /**
+    * @brief   This function parse input bitstream only, and rewrite possible SVC syntax to AVC syntax
+    * @param   pSrc the h264 stream to be decoded
+    * @param   iSrcLen the length of h264 stream
+    * @param   pDstInfo bit stream info
+    * @return  0 - success; otherwise -failed;
+    */
+    virtual DECODING_STATE EXTAPI DecodeParser (const unsigned char *pSrc,
+            const int32_t iSrcLen,
+            SParserBsInfo *pDstInfo) = 0;
 
-  /**
-  * @brief   This API does not work for now!! This is for future use to support non-I420 color format output.
-  * @param   pSrc the h264 stream to be decoded
-  * @param   iSrcLen the length of h264 stream
-  * @param   pDst buffer pointer of decoded data (YUV)
-  * @param   iDstStride output stride
-  * @param   iDstLen bit stream info
-  * @param   iWidth output width
-  * @param   iHeight output height
-  * @param   iColorFormat output color format
-  * @return  to do ...
-  */
-  virtual DECODING_STATE EXTAPI DecodeFrameEx (const unsigned char* pSrc,
-      const int32_t iSrcLen,
-      unsigned char* pDst,
-      int32_t iDstStride,
-      int32_t& iDstLen,
-      int32_t& iWidth,
-      int32_t& iHeight,
-      int32_t& iColorFormat) = 0;
+    /**
+    * @brief   This API does not work for now!! This is for future use to support non-I420 color format output.
+    * @param   pSrc the h264 stream to be decoded
+    * @param   iSrcLen the length of h264 stream
+    * @param   pDst buffer pointer of decoded data (YUV)
+    * @param   iDstStride output stride
+    * @param   iDstLen bit stream info
+    * @param   iWidth output width
+    * @param   iHeight output height
+    * @param   iColorFormat output color format
+    * @return  to do ...
+    */
+    virtual DECODING_STATE EXTAPI DecodeFrameEx (const unsigned char *pSrc,
+            const int32_t iSrcLen,
+            unsigned char *pDst,
+            int32_t iDstStride,
+            int32_t &iDstLen,
+            int32_t &iWidth,
+            int32_t &iHeight,
+            int32_t &iColorFormat) = 0;
 
-  /**
-  * @brief   Set option for decoder, detail option type, please refer to enumurate DECODER_OPTION.
-  * @param   pOption  option for decoder such as OutDataFormat, Eos Flag, EC method, ...
-  * @return  CM_RETURN: 0 - success; otherwise - failed;
-  */
-  virtual long EXTAPI SetOption (DECODER_OPTION eOptionId, void* pOption) = 0;
+    /**
+    * @brief   Set option for decoder, detail option type, please refer to enumurate DECODER_OPTION.
+    * @param   pOption  option for decoder such as OutDataFormat, Eos Flag, EC method, ...
+    * @return  CM_RETURN: 0 - success; otherwise - failed;
+    */
+    virtual long EXTAPI SetOption (DECODER_OPTION eOptionId, void *pOption) = 0;
 
-  /**
-  * @brief   Get option for decoder, detail option type, please refer to enumurate DECODER_OPTION.
-  * @param   pOption  option for decoder such as OutDataFormat, Eos Flag, EC method, ...
-  * @return  CM_RETURN: 0 - success; otherwise - failed;
-  */
-  virtual long EXTAPI GetOption (DECODER_OPTION eOptionId, void* pOption) = 0;
-  virtual ~ISVCDecoder() {}
+    /**
+    * @brief   Get option for decoder, detail option type, please refer to enumurate DECODER_OPTION.
+    * @param   pOption  option for decoder such as OutDataFormat, Eos Flag, EC method, ...
+    * @return  CM_RETURN: 0 - success; otherwise - failed;
+    */
+    virtual long EXTAPI GetOption (DECODER_OPTION eOptionId, void *pOption) = 0;
+    virtual ~ISVCDecoder() {}
 };
 
 
@@ -470,104 +470,104 @@ extern "C"
 #else
 
 typedef struct ISVCEncoderVtbl ISVCEncoderVtbl;
-typedef const ISVCEncoderVtbl* ISVCEncoder;
+typedef const ISVCEncoderVtbl *ISVCEncoder;
 struct ISVCEncoderVtbl {
 
-int32_t (*Initialize) (ISVCEncoder*, const SEncParamBase* pParam);
-int32_t (*InitializeExt) (ISVCEncoder*, const SEncParamExt* pParam);
+int32_t (*Initialize) (ISVCEncoder *, const SEncParamBase *pParam);
+int32_t (*InitializeExt) (ISVCEncoder *, const SEncParamExt *pParam);
 
-int32_t (*GetDefaultParams) (ISVCEncoder*, SEncParamExt* pParam);
+int32_t (*GetDefaultParams) (ISVCEncoder *, SEncParamExt *pParam);
 
-int32_t (*Uninitialize) (ISVCEncoder*);
+int32_t (*Uninitialize) (ISVCEncoder *);
 
-int32_t (*EncodeFrame) (ISVCEncoder*, const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo);
-int32_t (*EncodeParameterSets) (ISVCEncoder*, SFrameBSInfo* pBsInfo);
+int32_t (*EncodeFrame) (ISVCEncoder *, const SSourcePicture *kpSrcPic, SFrameBSInfo *pBsInfo);
+int32_t (*EncodeParameterSets) (ISVCEncoder *, SFrameBSInfo *pBsInfo);
 
-int32_t (*ForceIntraFrame) (ISVCEncoder*, bool bIDR);
+int32_t (*ForceIntraFrame) (ISVCEncoder *, bool bIDR);
 
-int32_t (*SetOption) (ISVCEncoder*, ENCODER_OPTION eOptionId, void* pOption);
-int32_t (*GetOption) (ISVCEncoder*, ENCODER_OPTION eOptionId, void* pOption);
+int32_t (*SetOption) (ISVCEncoder *, ENCODER_OPTION eOptionId, void *pOption);
+int32_t (*GetOption) (ISVCEncoder *, ENCODER_OPTION eOptionId, void *pOption);
 };
 
 typedef struct ISVCDecoderVtbl ISVCDecoderVtbl;
-typedef const ISVCDecoderVtbl* ISVCDecoder;
+typedef const ISVCDecoderVtbl *ISVCDecoder;
 struct ISVCDecoderVtbl {
-long (*Initialize) (ISVCDecoder*, const SDecodingParam* pParam);
-long (*Uninitialize) (ISVCDecoder*);
+long (*Initialize) (ISVCDecoder *, const SDecodingParam *pParam);
+long (*Uninitialize) (ISVCDecoder *);
 
-DECODING_STATE (*DecodeFrame) (ISVCDecoder*, const unsigned char* pSrc,
+DECODING_STATE (*DecodeFrame) (ISVCDecoder *, const unsigned char *pSrc,
                                const int32_t iSrcLen,
-                               unsigned char** ppDst,
-                               int32_t* pStride,
-                               int32_t* iWidth,
-                               int32_t* iHeight);
+                               unsigned char **ppDst,
+                               int32_t *pStride,
+                               int32_t *iWidth,
+                               int32_t *iHeight);
 
-DECODING_STATE (*DecodeFrameNoDelay) (ISVCDecoder*, const unsigned char* pSrc,
+DECODING_STATE (*DecodeFrameNoDelay) (ISVCDecoder *, const unsigned char *pSrc,
                                       const int32_t iSrcLen,
-                                      unsigned char** ppDst,
-                                      SBufferInfo* pDstInfo);
+                                      unsigned char **ppDst,
+                                      SBufferInfo *pDstInfo);
 
-DECODING_STATE (*DecodeFrame2) (ISVCDecoder*, const unsigned char* pSrc,
+DECODING_STATE (*DecodeFrame2) (ISVCDecoder *, const unsigned char *pSrc,
                                 const int32_t iSrcLen,
-                                unsigned char** ppDst,
-                                SBufferInfo* pDstInfo);
+                                unsigned char **ppDst,
+                                SBufferInfo *pDstInfo);
 
-DECODING_STATE (*FlushFrame) (ISVCDecoder*, unsigned char** ppDst,
-                              SBufferInfo* pDstInfo);
+DECODING_STATE (*FlushFrame) (ISVCDecoder *, unsigned char **ppDst,
+                              SBufferInfo *pDstInfo);
 
-DECODING_STATE (*DecodeParser) (ISVCDecoder*, const unsigned char* pSrc,
+DECODING_STATE (*DecodeParser) (ISVCDecoder *, const unsigned char *pSrc,
                                 const int32_t iSrcLen,
-                                SParserBsInfo* pDstInfo);
+                                SParserBsInfo *pDstInfo);
 
-DECODING_STATE (*DecodeFrameEx) (ISVCDecoder*, const unsigned char* pSrc,
+DECODING_STATE (*DecodeFrameEx) (ISVCDecoder *, const unsigned char *pSrc,
                                  const int32_t iSrcLen,
-                                 unsigned char* pDst,
+                                 unsigned char *pDst,
                                  int32_t iDstStride,
-                                 int32_t* iDstLen,
-                                 int32_t* iWidth,
-                                 int32_t* iHeight,
-                                 int32_t* iColorFormat);
+                                 int32_t *iDstLen,
+                                 int32_t *iWidth,
+                                 int32_t *iHeight,
+                                 int32_t *iColorFormat);
 
-long (*SetOption) (ISVCDecoder*, DECODER_OPTION eOptionId, void* pOption);
-long (*GetOption) (ISVCDecoder*, DECODER_OPTION eOptionId, void* pOption);
+long (*SetOption) (ISVCDecoder *, DECODER_OPTION eOptionId, void *pOption);
+long (*GetOption) (ISVCDecoder *, DECODER_OPTION eOptionId, void *pOption);
 };
 #endif
 
-typedef void (*WelsTraceCallback) (void* ctx, int32_t level, const char* string);
+typedef void (*WelsTraceCallback) (void *ctx, int32_t level, const char *string);
 
 /** @brief   Create encoder
  *  @param   ppEncoder encoder
  *  @return  0 - success; otherwise - failed;
 */
-int32_t  WelsCreateSVCEncoder (ISVCEncoder** ppEncoder);
+int32_t  WelsCreateSVCEncoder (ISVCEncoder **ppEncoder);
 
 
 /** @brief   Destroy encoder
 *   @param   pEncoder encoder
  *  @return  void
 */
-void WelsDestroySVCEncoder (ISVCEncoder* pEncoder);
+void WelsDestroySVCEncoder (ISVCEncoder *pEncoder);
 
 
 /** @brief   Get the capability of decoder
  *  @param   pDecCapability  decoder capability
  *  @return  0 - success; otherwise - failed;
 */
-int32_t WelsGetDecoderCapability (SDecoderCapability* pDecCapability);
+int32_t WelsGetDecoderCapability (SDecoderCapability *pDecCapability);
 
 
 /** @brief   Create decoder
  *  @param   ppDecoder decoder
  *  @return  0 - success; otherwise - failed;
 */
-long WelsCreateDecoder (ISVCDecoder** ppDecoder);
+long WelsCreateDecoder (ISVCDecoder **ppDecoder);
 
 
 /** @brief   Destroy decoder
  *  @param   pDecoder  decoder
  *  @return  void
 */
-void WelsDestroyDecoder (ISVCDecoder* pDecoder);
+void WelsDestroyDecoder (ISVCDecoder *pDecoder);
 
 /** @brief   Get codec version
  *           Note, old versions of Mingw (GCC < 4.7) are buggy and use an
@@ -580,7 +580,7 @@ OpenH264Version WelsGetCodecVersion (void);
 /** @brief   Get codec version
  *  @param   pVersion  struct to fill in with the version
 */
-void WelsGetCodecVersionEx (OpenH264Version* pVersion);
+void WelsGetCodecVersionEx (OpenH264Version *pVersion);
 
 const char *esp_openh264_get_version(void);
 

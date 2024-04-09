@@ -19,8 +19,8 @@
  * @param  cfg        THe configuration of single software decoder
  * @param  inbuf      The input buffer
  * @param  inbuf_len  The inbuf length
- * @param  yuv        The output buffer 
- * 
+ * @param  yuv        The output buffer
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -30,4 +30,3 @@
  *       - ESP_H264_ERR_UNSUPPORTED  Process feature is not supported by the decoder.
  */
 esp_h264_err_t single_sw_dec_process(esp_h264_dec_cfg_sw_t cfg, uint8_t *inbuf, uint32_t inbuf_len, uint8_t *yuv);
-

@@ -67,7 +67,7 @@ esp_h264_err_t esp_h264_enc_open(esp_h264_enc_handle_t enc);
  *       - ESP_H264_ERR_TIMEOUT      Timeout
  *       - ESP_H264_ERR_OVERFLOW     The size of encoder image is greater than `in_frame.raw_data.len`
  *       - ESP_H264_ERR_UNSUPPORTED  Process feature is not supported by the encoder
- *       
+ *
  */
 esp_h264_err_t esp_h264_enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_frame_t *in_frame, esp_h264_enc_out_frame_t *out_frame);
 

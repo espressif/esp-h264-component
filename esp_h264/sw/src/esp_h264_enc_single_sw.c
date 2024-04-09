@@ -80,7 +80,7 @@ static void fill_enc_param(SEncParamExt *sParam, const esp_h264_enc_cfg_sw_t *cf
 static esp_h264_err_t esp_h264_enc_hw_res_check(int width, int height)
 {
     if ((width > ESP_H264_SW_MIN_WIDTH)
-        && (height > ESP_H264_SW_MIN_HEIGHT)) {
+            && (height > ESP_H264_SW_MIN_HEIGHT)) {
         return ESP_H264_ERR_OK;
     }
     return ESP_H264_ERR_FAIL;
@@ -103,15 +103,15 @@ static esp_h264_err_t h264_sw_enc_process(esp_h264_enc_sw_handle_t *sw_hd, esp_h
     sFbi.sLayerInfo[0].pBsBuf = out_frame->raw_data.buffer;
     int iEncFrames = (*(sw_hd->pPtrEnc))->EncodeFrame(sw_hd->pPtrEnc, &sw_hd->src_pic, &sFbi);
     switch (iEncFrames) {
-        case cmResultSuccess:
-            break;
-        case cmUnsupportedData:
-        case cmInitParaError:
-            return ESP_H264_ERR_ARG;
-        case cmMallocMemeError:
-            return ESP_H264_ERR_MEM;
-        default:
-            return ESP_H264_ERR_FAIL;
+    case cmResultSuccess:
+        break;
+    case cmUnsupportedData:
+    case cmInitParaError:
+        return ESP_H264_ERR_ARG;
+    case cmMallocMemeError:
+        return ESP_H264_ERR_MEM;
+    default:
+        return ESP_H264_ERR_FAIL;
     }
     out_frame->length = (uint32_t)sFbi.iFrameSizeInBytes;
     out_frame->pts = (uint32_t)sFbi.uiTimeStamp;
@@ -188,18 +188,18 @@ esp_h264_err_t esp_h264_enc_sw_new(const esp_h264_enc_cfg_sw_t *cfg, esp_h264_en
     sw_hd->pic_type = cfg->pic_type;
     int iEncFrames = (*(sw_hd->pPtrEnc))->InitializeExt(sw_hd->pPtrEnc, &sSvcParam);
     switch (iEncFrames) {
-        case cmResultSuccess:
-            break;
-        case cmUnsupportedData:
-        case cmInitParaError:
-            ret = ESP_H264_ERR_ARG;
-            goto __exit__;
-        case cmMallocMemeError:
-            ret = ESP_H264_ERR_MEM;
-            goto __exit__;
-        default:
-            ret = ESP_H264_ERR_FAIL;
-            goto __exit__;
+    case cmResultSuccess:
+        break;
+    case cmUnsupportedData:
+    case cmInitParaError:
+        ret = ESP_H264_ERR_ARG;
+        goto __exit__;
+    case cmMallocMemeError:
+        ret = ESP_H264_ERR_MEM;
+        goto __exit__;
+    default:
+        ret = ESP_H264_ERR_FAIL;
+        goto __exit__;
     }
     if (sw_hd->pic_type != ESP_H264_RAW_FMT_I420) {
         sw_hd->yuv_cache = (uint8_t *)esp_h264_calloc_prefer(1, cfg->res.height * cfg->res.width * 1.5, &actual_size, ESP_H264_MEM_SPIRAM, ESP_H264_MEM_INTERNAL);
@@ -207,7 +207,7 @@ esp_h264_err_t esp_h264_enc_sw_new(const esp_h264_enc_cfg_sw_t *cfg, esp_h264_en
         sw_hd->cc = yuyv2iyuv;
 #ifdef HAVE_ESP32S3
         if (cfg->res.width % 32 == 0
-            && cfg->res.height % 2 == 0) {
+                && cfg->res.height % 2 == 0) {
             sw_hd->cc = yuyv2iyuv_esp32s3;
         }
 #endif

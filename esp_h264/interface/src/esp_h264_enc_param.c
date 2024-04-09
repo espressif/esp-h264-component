@@ -56,7 +56,7 @@ esp_h264_err_t esp_h264_enc_set_bitrate(esp_h264_enc_param_handle_t handle, uint
     return handle->set_bitrate(handle, bitrate);
 }
 
-esp_h264_err_t esp_h264_enc_get_bitrate(esp_h264_enc_param_handle_t handle, uint32_t* out_bitrate)
+esp_h264_err_t esp_h264_enc_get_bitrate(esp_h264_enc_param_handle_t handle, uint32_t *out_bitrate)
 {
     ESP_H264_RET_ON_FALSE(handle && out_bitrate, ESP_H264_ERR_ARG, TAG, "Invalid h264 parameter");
     ESP_H264_RET_ON_FALSE(out_bitrate, ESP_H264_ERR_ARG, TAG, "The out bitrate pointer is NULL.");

@@ -41,15 +41,15 @@ extern "C" {
 typedef struct h264_dma_desc h264_dma_desc_t;
 struct h264_dma_desc {
     volatile uint32_t vb : 14,  /*!< Number of vertical pixels of the block */
-                      hb : 14,  /*!< Number of horizontal pixels of the block */
-                 err_eof : 1,   /*!< Whether the received buffer contains error */
-               dma_2d_en : 1,   /*!< Whether to enable 2D functionality */
-                     eof : 1,   /*!< Whether the descriptor is the last one in the link */
-                   owner : 1;   /*!< Who is allowed to access the buffer that this descriptor points to. 0: CPU 1: H.264 */
+             hb : 14,  /*!< Number of horizontal pixels of the block */
+             err_eof : 1,   /*!< Whether the received buffer contains error */
+             dma_2d_en : 1,   /*!< Whether to enable 2D functionality */
+             eof : 1,   /*!< Whether the descriptor is the last one in the link */
+             owner : 1;   /*!< Who is allowed to access the buffer that this descriptor points to. 0: CPU 1: H.264 */
     volatile uint32_t va : 14,  /*!< Number of vertical pixels of the picture */
-                      ha : 15,  /*!< Number of horizontal pixels of the picture */
-                    mode : 1,   /*!< Data block read/write mode */
-                  rscv30 : 2;   /*!< Reserved */
+             ha : 15,  /*!< Number of horizontal pixels of the picture */
+             mode : 1,   /*!< Data block read/write mode */
+             rscv30 : 2;   /*!< Reserved */
     volatile uint8_t *buf;      /*!< If dma_2d_en = 1, pointer to the buffer of HA * VA picture
                                      If dma_2d_en = 0, pointer to the buffer*/
     h264_dma_desc_t *next_desc; /*!< Pointer to the next descriptor. Set to NULL if the descriptor is the last one, e.g. eof=1 */
@@ -176,7 +176,7 @@ static inline void h264_dma_ll_clear_all_intr(h264_dma_dev_t *dma)
  * @brief  Get the DMA RX interrput
  *
  * @param  in  Rx channel address
- * 
+ *
  * @return
  *       - The RX interrupt
  */

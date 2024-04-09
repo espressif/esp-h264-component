@@ -360,30 +360,30 @@ static inline void h264_ll_set_roi_reg(volatile h264_ctrl_regs_t *ctrl, bool ena
     ctrl->roi_region[reg_idx].roi_region_x_len = xlen;
     ctrl->roi_region[reg_idx].roi_region_y_len = ylen;
     switch (reg_idx) {
-        case 0:
-            ctrl->roi_region0_3_qp.roi_region0_qp = qp;
-            break;
-        case 1:
-            ctrl->roi_region0_3_qp.roi_region1_qp = qp;
-            break;
-        case 2:
-            ctrl->roi_region0_3_qp.roi_region2_qp = qp;
-            break;
-        case 3:
-            ctrl->roi_region0_3_qp.roi_region3_qp = qp;
-            break;
-        case 4:
-            ctrl->roi_region4_7_qp.roi_region4_qp = qp;
-            break;
-        case 5:
-            ctrl->roi_region4_7_qp.roi_region5_qp = qp;
-            break;
-        case 6:
-            ctrl->roi_region4_7_qp.roi_region6_qp = qp;
-            break;
-        case 7:
-            ctrl->roi_region4_7_qp.roi_region7_qp = qp;
-            break;
+    case 0:
+        ctrl->roi_region0_3_qp.roi_region0_qp = qp;
+        break;
+    case 1:
+        ctrl->roi_region0_3_qp.roi_region1_qp = qp;
+        break;
+    case 2:
+        ctrl->roi_region0_3_qp.roi_region2_qp = qp;
+        break;
+    case 3:
+        ctrl->roi_region0_3_qp.roi_region3_qp = qp;
+        break;
+    case 4:
+        ctrl->roi_region4_7_qp.roi_region4_qp = qp;
+        break;
+    case 5:
+        ctrl->roi_region4_7_qp.roi_region5_qp = qp;
+        break;
+    case 6:
+        ctrl->roi_region4_7_qp.roi_region6_qp = qp;
+        break;
+    case 7:
+        ctrl->roi_region4_7_qp.roi_region7_qp = qp;
+        break;
     }
 }
 
@@ -421,30 +421,30 @@ static inline void h264_ll_get_roi_reg(volatile h264_ctrl_regs_t *ctrl, uint8_t 
     *xlen = ctrl->roi_region[reg_idx].roi_region_x_len;
     *ylen = ctrl->roi_region[reg_idx].roi_region_y_len;
     switch (reg_idx) {
-        case 0:
-            *qp = ctrl->roi_region0_3_qp.roi_region0_qp;
-            break;
-        case 1:
-            *qp = ctrl->roi_region0_3_qp.roi_region1_qp;
-            break;
-        case 2:
-            *qp = ctrl->roi_region0_3_qp.roi_region2_qp;
-            break;
-        case 3:
-            *qp = ctrl->roi_region0_3_qp.roi_region3_qp;
-            break;
-        case 4:
-            *qp = ctrl->roi_region4_7_qp.roi_region4_qp;
-            break;
-        case 5:
-            *qp = ctrl->roi_region4_7_qp.roi_region5_qp;
-            break;
-        case 6:
-            *qp = ctrl->roi_region4_7_qp.roi_region6_qp;
-            break;
-        case 7:
-            *qp = ctrl->roi_region4_7_qp.roi_region7_qp;
-            break;
+    case 0:
+        *qp = ctrl->roi_region0_3_qp.roi_region0_qp;
+        break;
+    case 1:
+        *qp = ctrl->roi_region0_3_qp.roi_region1_qp;
+        break;
+    case 2:
+        *qp = ctrl->roi_region0_3_qp.roi_region2_qp;
+        break;
+    case 3:
+        *qp = ctrl->roi_region0_3_qp.roi_region3_qp;
+        break;
+    case 4:
+        *qp = ctrl->roi_region4_7_qp.roi_region4_qp;
+        break;
+    case 5:
+        *qp = ctrl->roi_region4_7_qp.roi_region5_qp;
+        break;
+    case 6:
+        *qp = ctrl->roi_region4_7_qp.roi_region6_qp;
+        break;
+    case 7:
+        *qp = ctrl->roi_region4_7_qp.roi_region7_qp;
+        break;
     }
 }
 
@@ -649,7 +649,7 @@ static inline void h264_ll_set_mvm(h264_dev_t *h264, uint8_t mv_mode, uint8_t mv
  *                  0: The 16 * 16 macro block MV data collection
  *                  1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
- *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data. 
+ *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
  * @param  mv_fmt   Motion vector(MV) format
  *                  0: Output all MV data expect zero

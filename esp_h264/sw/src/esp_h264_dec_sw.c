@@ -43,23 +43,23 @@ static esp_h264_err_t dec_process(esp_h264_dec_handle_t dec, esp_h264_dec_in_fra
     out_frame->out_size = 0;
     sw_hd->out_len = sw_hd->width * sw_hd->height + (sw_hd->width * sw_hd->height >> 1);
     switch (retCode) {
-        case H264BSD_ERROR:
-            ESP_H264_LOGE(TAG, "Error in decoding");
-            return ESP_H264_ERR_FAIL;
-        case H264BSD_PARAM_SET_ERROR:
-            ESP_H264_LOGE(TAG, "Serious error in decoding, failed to activate param sets");
-            return ESP_H264_ERR_FAIL;
-        /* The parsing of not picture data NALU is done, like SPS PPS.*/
-        case H264BSD_RDY:
-            return ESP_H264_ERR_OK;
-        /* The parsing of picture NALU is done for, like I-frame P-frame.*/
-        case H264BSD_PIC_RDY:
-            out_frame->outbuf = pic;
-            out_frame->out_size = sw_hd->out_len;
-            return ESP_H264_ERR_OK;
-        case H264BSD_MEMALLOC_ERROR:
-            ESP_H264_LOGE(TAG, "Memory lack");
-            return ESP_H264_ERR_MEM;
+    case H264BSD_ERROR:
+        ESP_H264_LOGE(TAG, "Error in decoding");
+        return ESP_H264_ERR_FAIL;
+    case H264BSD_PARAM_SET_ERROR:
+        ESP_H264_LOGE(TAG, "Serious error in decoding, failed to activate param sets");
+        return ESP_H264_ERR_FAIL;
+    /* The parsing of not picture data NALU is done, like SPS PPS.*/
+    case H264BSD_RDY:
+        return ESP_H264_ERR_OK;
+    /* The parsing of picture NALU is done for, like I-frame P-frame.*/
+    case H264BSD_PIC_RDY:
+        out_frame->outbuf = pic;
+        out_frame->out_size = sw_hd->out_len;
+        return ESP_H264_ERR_OK;
+    case H264BSD_MEMALLOC_ERROR:
+        ESP_H264_LOGE(TAG, "Memory lack");
+        return ESP_H264_ERR_MEM;
     }
     return ESP_H264_ERR_OK;
 }

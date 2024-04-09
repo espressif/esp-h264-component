@@ -24,7 +24,7 @@ extern "C" {
  *            - Support de-blocking filter, ROI, MV function
  *            - Support SPS and PPS encoding
  *     software encoder
- *            - Support baseline profile (max frame size is 36864 macro-block)    
+ *            - Support baseline profile (max frame size is 36864 macro-block)
  *            - Support a variety of widths and heights greater than 16
  *            - Support quality first rate control
  *            - Support YUYV and IYUV raw data

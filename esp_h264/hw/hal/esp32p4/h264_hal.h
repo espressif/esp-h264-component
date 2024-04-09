@@ -60,7 +60,7 @@ typedef struct h264_hal_channel_cfg {
  * @brief  H.264 configure information
  */
 typedef struct h264_hal_context_cfg {
-    bool                   gop_mode_en;                   /*<! Ture: GOP mode enable 
+    bool                   gop_mode_en;                   /*<! Ture: GOP mode enable
                                                                False: frame mode enable
                                                                The dual stream encoding must use frame mode. */
     uint8_t                gop;                           /*<! Group of picture(GOP) */
@@ -181,9 +181,9 @@ void h264_hal_get_rc_bits_mad_qpsum(h264_hal_context_t *hal, uint32_t *enc_bits,
  * @param  device   Stream configure handle
  * @param  mv_mode  Motion vector(MV) mode
  *                  0: The 16 * 16 macro block MV data collection
- *                  1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data. 
+ *                  1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
- *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data. 
+ *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
  * @param  mv_fmt   Motion vector(MV) format
  *                  0: Output all MV data expect zero
@@ -198,7 +198,7 @@ void h264_hal_set_mv_mode(esp_h264_set_dev_t device, int8_t mv_mode, uint8_t mv_
  * @param  mv_mode  Motion vector(MV) mode
  *                  -1: It is disable MV
  *                   0: The 16 * 16 macro block MV data collection
- *                   1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data. 
+ *                   1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
  *                      Otherwise it's result of 16 * 16 macro block MV data.
  *                   2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
  *                      Otherwise it's result of 16 * 16 macro block MV data.

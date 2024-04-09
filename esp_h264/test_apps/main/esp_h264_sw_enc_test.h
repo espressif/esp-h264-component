@@ -20,7 +20,7 @@
  *        step 5: Delete the encoder handle by call `esp_h264_enc_del`.
  *
  * @param  cfg  THe configuration of single software encoder
- * 
+ *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
  *       - ESP_H264_ERR_TIMEOUT      Timeout
@@ -30,4 +30,3 @@
  *       - ESP_H264_ERR_UNSUPPORTED  Process feature is not supported by the encoder.
  */
 esp_h264_err_t single_sw_enc_thread_test(esp_h264_enc_cfg_sw_t cfg);
-

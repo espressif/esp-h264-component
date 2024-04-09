@@ -41,13 +41,13 @@ esp_h264_err_t single_sw_dec_process(esp_h264_dec_cfg_sw_t cfg, uint8_t *inbuf, 
 
         in_frame.raw_data.buffer += in_frame.consume;
         in_frame.raw_data.len -= in_frame.consume;
-        if(ret == ESP_H264_ERR_OK) {
+        if (ret == ESP_H264_ERR_OK) {
             write_dec_cd(&out_frame, NULL);
         } else {
-            printf("process failed. ret %d line %d \n",ret, __LINE__);
+            printf("process failed. ret %d line %d \n", ret, __LINE__);
             goto _single_exit_;
         }
-    }  
+    }
 _single_exit_:
     ret |= esp_h264_dec_close(dec);
     ret |= esp_h264_dec_del(dec);

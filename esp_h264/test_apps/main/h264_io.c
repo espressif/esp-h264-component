@@ -52,7 +52,7 @@ static int index_c = 0;
 int read_enc_cb_420(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height)
 {
     index_c++;
-    if (index_c > COLOR_NUM) {   
+    if (index_c > COLOR_NUM) {
         index_c = 0;
         return -1;
     }
@@ -130,7 +130,7 @@ int write_enc_cb(esp_h264_enc_out_frame_t *frame)
 int read_enc_cb_i420(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height)
 {
     index_c++;
-    if (index_c > COLOR_NUM) {   
+    if (index_c > COLOR_NUM) {
         index_c = 0;
         return -1;
     }
@@ -142,10 +142,10 @@ int read_enc_cb_i420(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t heig
     for (int j = 0; j < height * width; j++) {
         *yuv++ = y; // Y
     }
-    for (int j = 0; j < height * width >> 2; j++) {
+    for (int j = 0; j < height *width >> 2; j++) {
         *yuv++ = u; // u
     }
-    for (int j = 0; j < height * width >> 2; j++) {
+    for (int j = 0; j < height *width >> 2; j++) {
         *yuv++ = v; // v
     }
     return 1;

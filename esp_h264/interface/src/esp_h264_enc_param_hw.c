@@ -62,7 +62,7 @@ esp_h264_err_t esp_h264_enc_hw_get_mv_cfg_info(esp_h264_enc_param_hw_handle_t ha
 esp_h264_err_t esp_h264_enc_hw_set_mv_pkt(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mvm_pkt_t mv_pkt)
 {
     ESP_H264_RET_ON_FALSE(handle, ESP_H264_ERR_ARG, TAG, "Invalid h264 parameter");
-    ESP_H264_RET_ON_FALSE(mv_pkt.data, ESP_H264_ERR_ARG, TAG, "The MV packet data is NULL."); 
+    ESP_H264_RET_ON_FALSE(mv_pkt.data, ESP_H264_ERR_ARG, TAG, "The MV packet data is NULL.");
     ESP_H264_RET_ON_FALSE(mv_pkt.len > 0, ESP_H264_ERR_ARG, TAG, "The MV packet length is less than or equal 0.");
     ESP_H264_RET_ON_FALSE(handle->set_mv_pkt, ESP_H264_ERR_UNSUPPORTED, TAG, "`set_mv_pkt` is not supported yet");
     return handle->set_mv_pkt(handle, mv_pkt);
