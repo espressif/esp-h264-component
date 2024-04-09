@@ -26,7 +26,7 @@ TEST_CASE("hw_enc_single_hw_enc_gop_test", "[esp_h264]")
         cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
         cfg.rc.qp_min = 26;
         cfg.rc.qp_max = 26;
-        cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
         TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_process(cfg));
     }
 }
@@ -42,7 +42,7 @@ TEST_CASE("hw_enc_single_hw_enc_fps_test", "[esp_h264]")
         cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
         cfg.rc.qp_min = 26;
         cfg.rc.qp_max = 26;
-        cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
         TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_process(cfg));
     }
 }
@@ -58,7 +58,7 @@ TEST_CASE("hw_enc_single_hw_enc_qp_test", "[esp_h264]")
         cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
         cfg.rc.qp_min = qp < 0 ? 0 : qp;
         cfg.rc.qp_max = (cfg.rc.qp_min + 1) > 51 ? 51 : (cfg.rc.qp_min + 1);
-        cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
         TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_process(cfg));
     }
 }
@@ -74,7 +74,7 @@ TEST_CASE("hw_enc_dual_hw_enc_gop_test", "[esp_h264]")
         cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
         cfg.cfg0.rc.qp_min = 26;
         cfg.cfg0.rc.qp_max = 26;
-        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
         cfg.cfg1.gop = gop;
         cfg.cfg1.fps = 30;
@@ -83,7 +83,7 @@ TEST_CASE("hw_enc_dual_hw_enc_gop_test", "[esp_h264]")
         cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
         cfg.cfg1.rc.qp_min = 26;
         cfg.cfg1.rc.qp_max = 26;
-        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
         TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,dual_hw_enc_process(cfg));
     }
 }
@@ -99,7 +99,7 @@ TEST_CASE("hw_enc_dual_hw_enc_fps_test", "[esp_h264]")
         cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
         cfg.cfg0.rc.qp_min = 26;
         cfg.cfg0.rc.qp_max = 26;
-        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
         cfg.cfg1.gop = 5;
         cfg.cfg1.fps = ((fps + 5) % 256) == 0 ? 1 : ((fps + 5) % 256);
@@ -108,7 +108,7 @@ TEST_CASE("hw_enc_dual_hw_enc_fps_test", "[esp_h264]")
         cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
         cfg.cfg1.rc.qp_min = 26;
         cfg.cfg1.rc.qp_max = 26;
-        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
         TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,dual_hw_enc_process(cfg));
     }
 }
@@ -124,7 +124,7 @@ TEST_CASE("hw_enc_dual_hw_enc_qp_test", "[esp_h264]")
         cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
         cfg.cfg0.rc.qp_min = qp < 0 ? 0 : qp;
         cfg.cfg0.rc.qp_max = (cfg.cfg0.rc.qp_min + 1) > 51 ? 51 : (cfg.cfg0.rc.qp_min + 1);
-        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
         cfg.cfg1.gop = 5;
         cfg.cfg1.fps = 30;
@@ -133,7 +133,7 @@ TEST_CASE("hw_enc_dual_hw_enc_qp_test", "[esp_h264]")
         cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
         cfg.cfg1.rc.qp_min = qp < 0 ? 0 : (qp + 1) % 51;
         cfg.cfg1.rc.qp_max = (cfg.cfg1.rc.qp_min + 1) > 51 ? 51 : (cfg.cfg1.rc.qp_min + 1);
-        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
         TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,dual_hw_enc_process(cfg));
     }
 }
@@ -148,7 +148,7 @@ TEST_CASE("hw_enc_set_get_param_single_hw_enc_thread_test", "[esp_h264]")
     cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK,single_hw_enc_thread_test(cfg));
 }
 
@@ -162,7 +162,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_thread_test", "[esp_h264]")
     cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
     cfg.cfg0.rc.qp_min = 26;
     cfg.cfg0.rc.qp_max = 26;
-    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     cfg.cfg1.gop = 5;
     cfg.cfg1.fps = 30;
@@ -171,7 +171,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_thread_test", "[esp_h264]")
     cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
     cfg.cfg1.rc.qp_min = 26;
     cfg.cfg1.rc.qp_max = 26;
-    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_thread_test(cfg));
 }
 
@@ -185,7 +185,7 @@ TEST_CASE("hw_enc_set_get_param_single_hw_enc_roi_cfg_test", "[esp_h264]")
     cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_roi_cfg_test(cfg));
 }
 
@@ -199,7 +199,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_roi_cfg_test", "[esp_h264]")
     cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
     cfg.cfg0.rc.qp_min = 26;
     cfg.cfg0.rc.qp_max = 26;
-    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     cfg.cfg1.gop = 5;
     cfg.cfg1.fps = 30;
@@ -208,7 +208,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_roi_cfg_test", "[esp_h264]")
     cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
     cfg.cfg1.rc.qp_min = 26;
     cfg.cfg1.rc.qp_max = 26;
-    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_roi_cfg_test(cfg));
 }
 
@@ -222,7 +222,7 @@ TEST_CASE("hw_enc_set_get_param_single_hw_enc_roi_reg_test", "[esp_h264]")
     cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_roi_reg_test(cfg));
 }
 
@@ -236,7 +236,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_roi_reg_test", "[esp_h264]")
     cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
     cfg.cfg0.rc.qp_min = 26;
     cfg.cfg0.rc.qp_max = 26;
-    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     cfg.cfg1.gop = 5;
     cfg.cfg1.fps = 30;
@@ -245,7 +245,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_roi_reg_test", "[esp_h264]")
     cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
     cfg.cfg1.rc.qp_min = 26;
     cfg.cfg1.rc.qp_max = 26;
-    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_roi_reg_test(cfg));
 }
 
@@ -259,7 +259,7 @@ TEST_CASE("hw_enc_set_get_param_single_hw_enc_mv_pkt_test", "[esp_h264]")
     cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_mv_pkt_test(cfg));
 }
 
@@ -273,7 +273,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_mv_pkt_test", "[esp_h264]")
     cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
     cfg.cfg0.rc.qp_min = 26;
     cfg.cfg0.rc.qp_max = 26;
-    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     cfg.cfg1.gop = 5;
     cfg.cfg1.fps = 30;
@@ -282,7 +282,7 @@ TEST_CASE("hw_enc_set_get_param_dual_hw_enc_mv_pkt_test", "[esp_h264]")
     cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
     cfg.cfg1.rc.qp_min = 26;
     cfg.cfg1.rc.qp_max = 26;
-    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_mv_pkt_test(cfg));
 }
 
@@ -298,7 +298,7 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
     cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
     cfg.rc.qp_min = 26;
     cfg.rc.qp_max = 26;
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     /* cfg is NULL*/
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_hw_new(NULL, &enc));
@@ -306,10 +306,10 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
     /* enc handle is NULL*/
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_hw_new(&cfg, NULL));
 
-    /* pic_type isn't ESP_H264_RAW_FMT_YUV420P */
+    /* pic_type isn't ESP_H264_RAW_FMT_O_UYY_E_VYY */
     cfg.pic_type = ESP_H264_RAW_FMT_I420;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_hw_new(&cfg, &enc));
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     /* width is greater than 1920 */
     cfg.res.width = 2000;
@@ -548,7 +548,7 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
     cfg_dual.cfg0.rc.bitrate = cfg_dual.cfg0.res.width * cfg_dual.cfg0.res.height * cfg_dual.cfg0.fps / 20;
     cfg_dual.cfg0.rc.qp_min = 26;
     cfg_dual.cfg0.rc.qp_max = 26;
-    cfg_dual.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg_dual.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     cfg_dual.cfg1.gop = 5;
     cfg_dual.cfg1.fps = 30;
@@ -557,7 +557,7 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
     cfg_dual.cfg1.rc.bitrate = cfg_dual.cfg1.res.width * cfg_dual.cfg1.res.height * cfg_dual.cfg1.fps / 20;
     cfg_dual.cfg1.rc.qp_min = 26;
     cfg_dual.cfg1.rc.qp_max = 26;
-    cfg_dual.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg_dual.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     /* cfg is NULL*/
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_new(NULL, &enc_dual));
@@ -565,14 +565,14 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
     /* enc handle is NULL*/
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_new(&cfg_dual, NULL));
 
-    /* pic_type isn't ESP_H264_RAW_FMT_YUV420P */
+    /* pic_type isn't ESP_H264_RAW_FMT_O_UYY_E_VYY */
     cfg_dual.cfg0.pic_type = ESP_H264_RAW_FMT_I420;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_new(&cfg_dual, &enc_dual));
-    cfg_dual.cfg0.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg_dual.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     cfg_dual.cfg1.pic_type = ESP_H264_RAW_FMT_I420;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_new(&cfg_dual, &enc_dual));
-    cfg_dual.cfg1.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg_dual.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
 
     /* width is greater than 1920 */
     cfg_dual.cfg0.res.width = 2000;
@@ -749,7 +749,7 @@ TEST_CASE("sw_dec_error_test", "[esp_h264]")
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_dec_sw_new(&cfg, NULL));
 
     /* pic_type isn't ESP_H264_RAW_FMT_I420*/
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_dec_sw_new(&cfg, NULL));
 
     cfg.pic_type = ESP_H264_RAW_FMT_I420;
@@ -901,8 +901,8 @@ TEST_CASE("sw_enc_error_test", "[esp_h264]")
     /* enc handle is NULL*/
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_sw_new(&cfg, NULL));
 
-    /* pic_type is ESP_H264_RAW_FMT_YUV420P */
-    cfg.pic_type = ESP_H264_RAW_FMT_YUV420P;
+    /* pic_type is ESP_H264_RAW_FMT_O_UYY_E_VYY */
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_sw_new(&cfg, &enc));
     cfg.pic_type = ESP_H264_RAW_FMT_I420;
 

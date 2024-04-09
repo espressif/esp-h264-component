@@ -45,7 +45,7 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | GOP                 | Supported GOP range is 1 to 255.                                    | Supported GOP range is 1 to 255.            |
 | SPS                 | Supported SPS is for all IDR-frame                                  | Supported SPS is for all IDR-frame          |
 | PPS                 | Supported SPS is for all IDR-frame                                  | Supported SPS is for all IDR-frame          |
-| unencoded data type | Supported ESP_H264_RAW_FMT_YUV420P                                  | Supported ESP_H264_RAW_FMT_YUV422           |
+| unencoded data type | Supported ESP_H264_RAW_FMT_O_UYY_E_VYY                              | Supported ESP_H264_RAW_FMT_YUYV             |
 |                     |                                                                     | Supported ESP_H264_RAW_FMT_I420             |
 | RC                  | Supported                                                           | Supported                                   |
 | de-blocking filter  | Supported                                                           | Supported                                   |
@@ -81,7 +81,7 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | Resolution | Raw Format              | Memory (Byte) | Frame Per Second(fps) |
 | ---------- | ----------------------- | ------------- | --------------------- |
 | 320 * 192  | ESP_H264_RAW_FMT_I420   | 1 M           | 17.48                 |
-| 320 * 240  | ESP_H264_RAW_FMT_YUV422 | 1 M           | 11.23                 |
+| 320 * 240  | ESP_H264_RAW_FMT_YUYV   | 1 M           | 11.23                 |
 
 ### DECODER
 
@@ -96,9 +96,9 @@ Note: the memory consumption is strongly depenedent on the resolution of H264 st
 
 ### HW ENCODER
 
-| Resolution  | Raw Format               | Memory (Byte) | Frame Per Second(fps) |
-| ----------- | ------------------------ | ------------- | --------------------- |
-| 1920 * 1080 | ESP_H264_RAW_FMT_YUV420P | 140 K            | 30                    |
+| Resolution  | Raw Format                    | Memory (Byte) | Frame Per Second(fps) |
+| ----------- | ----------------------------- | ------------- | --------------------- |
+| 1920 * 1080 | ESP_H264_RAW_FMT_O_UYY_E_VYY  | 140k          | 30                    |
 
 ### DECODER
 

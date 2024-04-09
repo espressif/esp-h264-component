@@ -290,7 +290,7 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
     ESP_H264_RET_ON_FALSE(cfg && out_enc, ESP_H264_ERR_ARG, TAG, "Invalid h264 configure and handle parameter");
     esp_h264_enc_cfg_t enc_cfg[H264_SUP_MAX_CHANNEL] = { cfg->cfg0, cfg->cfg1 };
     for (uint8_t i = 0; i < H264_SUP_MAX_CHANNEL; i++) {
-        ESP_H264_RET_ON_FALSE((enc_cfg[i].pic_type == ESP_H264_RAW_FMT_YUV420P), ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
+        ESP_H264_RET_ON_FALSE((enc_cfg[i].pic_type == ESP_H264_RAW_FMT_O_UYY_E_VYY), ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
         ESP_H264_RET_ON_FALSE((enc_cfg[i].rc.qp_max >= enc_cfg[i].rc.qp_min) && (enc_cfg[i].rc.qp_max <= ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "Invalid h264 QP parameter");
         ESP_H264_RET_ON_FALSE((esp_h264_enc_hw_res_check(enc_cfg[i].res.width, enc_cfg[i].res.height) == ESP_H264_ERR_OK), ESP_H264_ERR_ARG, TAG, "Invalid h264 resolution parameter");
         ESP_H264_RET_ON_FALSE((enc_cfg[i].fps > 0) && (enc_cfg[i].gop > 0), ESP_H264_ERR_ARG, TAG, "Invalid h264 FPS and GOP parameter");

@@ -33,33 +33,33 @@ typedef enum {
  * @brief  This is unencoded data format
  *
  * @note
- *        |--------------------------|--------------|--------------|
- *        | enum                     |  SW encoedr  |  HW encoder  |
- *        |--------------------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_YUV422  |  supported   | un-supported |
- *        |--------------------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_I420    |  supported   | un-supported |
- *        |--------------------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_YUV420P | un-supported |  supported   |
- *        |--------------------------|--------------|--------------|
+ *        |-------------------------------|--------------|--------------|
+ *        | enum                          |  SW encoedr  |  HW encoder  |
+ *        |-------------------------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_YUYV         |  supported   | un-supported |
+ *        |-------------------------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_I420         |  supported   | un-supported |
+ *        |-------------------------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_O_UYY_E_VYY  | un-supported |  supported   |
+ *        |-------------------------------|--------------|--------------|
  */
 typedef enum {
-    ESP_H264_RAW_FMT_YUV422,  /*<! YUYV */
-    ESP_H264_RAW_FMT_I420,    /*<! IYUV */
-    ESP_H264_RAW_FMT_YUV420P, /*<! YUV420, the data order is as follows
-                                   |-------------|-------------------------------|
-                                   | line number |         data order            |
-                                   |-------------|-------------------------------|
-                                   |   0         |         u y y u y y u y y...  |
-                                   |-------------|-------------------------------|
-                                   |   1         |         v y y v y y v y y...  |
-                                   |-------------|-------------------------------|
-                                   |   2         |         u y y u y y u y y...  |
-                                   |-------------|-------------------------------|
-                                   |   3         |         v y y v y y v y y...  |
-                                   |-------------|-------------------------------|
-                                   |   ...       |         ...
-                                   |-------------|-------------------------------|
+    ESP_H264_RAW_FMT_YUYV,         /*<! The storage format is YUV422 packet. The data order is Y U Y V... for per line */
+    ESP_H264_RAW_FMT_I420,         /*<! The storage format is YUV420 planer（IYUV). The data order is to store all Y first then all U and finally all V */
+    ESP_H264_RAW_FMT_O_UYY_E_VYY,  /*<! The storage format is YUV420 packet, the data order is as follows
+                                        |-------------|-------------------------------|
+                                        | line number |         data order            |
+                                        |-------------|-------------------------------|
+                                        |   0         |         u y y u y y u y y...  |
+                                        |-------------|-------------------------------|
+                                        |   1         |         v y y v y y v y y...  |
+                                        |-------------|-------------------------------|
+                                        |   2         |         u y y u y y u y y...  |
+                                        |-------------|-------------------------------|
+                                        |   3         |         v y y v y y v y y...  |
+                                        |-------------|-------------------------------|
+                                        |   ...       |         ...                   |
+                                        |-------------|-------------------------------|
  */
 } esp_h264_raw_format_t;
 
