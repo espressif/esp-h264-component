@@ -1,4 +1,4 @@
-components/esp_h264/test_apps:
+esp_h264/test_apps:
   enable:
     - if: IDF_TARGET == "esp32p4"
   disable_test:
@@ -7,4 +7,3 @@ components/esp_h264/test_apps:
       reason: lack of runner
   depends_components:
     - esp_h264
-    - esp_mm

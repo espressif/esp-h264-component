@@ -37,7 +37,7 @@ static esp_h264_err_t dec_process(esp_h264_dec_handle_t dec, esp_h264_dec_in_fra
     uint32_t retCode = 3;
     uint8_t *pic = NULL;
     uint32_t length = in_frame->raw_data.len;
-    u32 width = 0, height = 0;
+
     retCode = h264bsdDecode(sw_hd->dec_hd, in_frame->raw_data.buffer, (u32 *)&length, &pic, (u32 *)&sw_hd->width, (u32 *)&sw_hd->height);
     in_frame->consume = in_frame->raw_data.len - length;
     out_frame->out_size = 0;

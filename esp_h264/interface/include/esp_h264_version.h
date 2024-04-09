@@ -50,7 +50,7 @@ extern "C" {
  * @return
  *       - ESP_H264_VERSION
  */
-const char *esp_h264_get_version();
+const char *esp_h264_get_version(void);
 
 #ifdef __cplusplus
 }
