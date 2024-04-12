@@ -273,7 +273,7 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 {
     /* Parameter check */
     ESP_H264_RET_ON_FALSE(cfg && out_enc, ESP_H264_ERR_ARG, TAG, "Invalid h264 configure and handle parameter");
-    ESP_H264_RET_ON_FALSE(cfg->pic_type == ESP_H264_RAW_FMT_YUV420P, ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
+    ESP_H264_RET_ON_FALSE(cfg->pic_type == ESP_H264_RAW_FMT_O_UYY_E_VYY, ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
     ESP_H264_RET_ON_FALSE((cfg->rc.qp_max >= cfg->rc.qp_min) && (cfg->rc.qp_max <= ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "Invalid h264 QP parameter");
     ESP_H264_RET_ON_FALSE((esp_h264_enc_hw_res_check(cfg->res.width, cfg->res.height) == ESP_H264_ERR_OK), ESP_H264_ERR_ARG, TAG, "Invalid h264 resolution parameter");
     ESP_H264_RET_ON_FALSE((cfg->fps > 0) && (cfg->gop > 0), ESP_H264_ERR_ARG, TAG, "Invalid h264 FPS and GOP parameter");
