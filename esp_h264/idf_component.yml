@@ -1,8 +1,7 @@
-version: "1.0.0"
+version: "0.2.0"
 description: Espressif H264 encoder and decoder
 
 url: https://github.com/espressif/esp-h264-component
 issues: https://github.com/espressif/esp-h264-component/issues
 dependencies:
   idf : ">=4.4"
-   
