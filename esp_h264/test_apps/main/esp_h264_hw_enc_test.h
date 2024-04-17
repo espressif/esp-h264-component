@@ -5,7 +5,7 @@
  */
 
 #pragma once
-
+#if CONFIG_IDF_TARGET_ESP32P4
 #include "esp_h264_enc_single_hw.h"
 #include "esp_h264_enc_single.h"
 #include "esp_h264_enc_dual_hw.h"
@@ -188,3 +188,4 @@ esp_h264_err_t single_hw_enc_mv_pkt_test(esp_h264_enc_cfg_hw_t cfg);
  *       - ESP_H264_ERR_UNSUPPORTED  Process feature is not supported by the encoder.
  */
 esp_h264_err_t dual_hw_enc_mv_pkt_test(esp_h264_enc_cfg_dual_hw_t cfg);
+#endif //CONFIG_IDF_TARGET_ESP32P4
