@@ -56,6 +56,8 @@ static esp_h264_err_t dec_process(esp_h264_dec_handle_t dec, esp_h264_dec_in_fra
     case H264BSD_PIC_RDY:
         out_frame->outbuf = pic;
         out_frame->out_size = sw_hd->out_len;
+        out_frame->pts = in_frame->pts;
+        out_frame->dts = in_frame->dts;
         return ESP_H264_ERR_OK;
     case H264BSD_MEMALLOC_ERROR:
         ESP_H264_LOGE(TAG, "Memory lack");
