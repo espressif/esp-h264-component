@@ -32,6 +32,12 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | RC         | Rate control            | The size of the output stream approaching the target stream is controlled.              |
 |            |                         |                                                                                         |
 
+# Supported chip
+
+| ESP_H264 Version | ESP32-S3  | ESP32-P4  |
+| ---------------- | --------- | --------- |
+| v1.0.x           | Supported | Supported |
+
 # Features
 
 ## encoder
@@ -107,12 +113,6 @@ Note: the memory consumption is strongly depenedent on the resolution of H264 st
 | Resolution |     Raw Format          | Memory (Byte) | Frame Per Second(fps) |
 | --         | --                      |--             | --                    |
 | 1280 * 720 | ESP_H264_RAW_FMT_I420   |6.2 M          | 4                     |
-
-# Supported chip
-
-| ESP_H264 Version | ESP32-S3  | ESP32-P4  |
-| ---------------- | --------- | --------- |
-| v1.0.0           | Supported | Supported |
 
 # Example
 Please refer to the files test_apps/esp_h264_*_test.c and test_apps/esp_h264_*_test.h for more details on API usage.
