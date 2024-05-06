@@ -42,6 +42,9 @@ extern "C" {
  *  Release Notes:
  *     v1.0.0:
  *     - Add h264 encoder and decoder support
+ *     v1.0.1:
+ *     - Changed the IDF dependencies from >= 5.3 to >= 4.4
+ *     - Fixed the decoder without updating PTS and DTS
  */
 
 /**
