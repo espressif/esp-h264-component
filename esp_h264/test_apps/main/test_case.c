@@ -12,10 +12,12 @@
 
 static int16_t res_width = 128;
 static int16_t res_height = 128;
+
+#if CONFIG_IDF_TARGET_ESP32P4
+
 static int16_t res_width1 = 128;
 static int16_t res_height1 = 128;
 
-#if CONFIG_IDF_TARGET_ESP32P4
 TEST_CASE("hw_enc_single_hw_enc_gop_test", "[esp_h264]")
 {
     for (int16_t gop = 1; gop < 256; gop++) {

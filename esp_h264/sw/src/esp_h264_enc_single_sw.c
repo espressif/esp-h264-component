@@ -46,7 +46,7 @@ static void fill_enc_param(SEncParamExt *sParam, const esp_h264_enc_cfg_sw_t *cf
     sParam->iEntropyCodingModeFlag = 0;
 
     /*RC */
-    sParam->bEnableFrameSkip = true;
+    sParam->bEnableFrameSkip = false;
     sParam->iRCMode = RC_QUALITY_MODE; //  rc mode control
     sParam->iMaxBitrate = cfg->rc.bitrate;
     sParam->iMaxQp = cfg->rc.qp_max;

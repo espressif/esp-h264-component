@@ -1,0 +1,37 @@
+.config
+*.o
+*.pyc
+
+# gtags
+GTAGS
+GRTAGS
+GPATH
+
+# emacs
+.dir-locals.el
+
+# emacs temp file suffixes
+*~
+.#*
+\#*#
+# MacOS directory files
+.DS_Store
+
+# eclipse setting
+.settings
+
+# Example project files
+esp_h264/**/sdkconfig
+esp_h264/**/sdkconfig.old
+esp_h264/**/build
+esp_h264/**/managed_components
+esp_h264/**/dependencies.lock
+
+
+# gcov coverage reports
+*.gcda
+*.gcno
+coverage.info
+coverage_report/
+
+.vscode
