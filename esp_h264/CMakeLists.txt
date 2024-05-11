@@ -21,7 +21,7 @@ list(APPEND public_requires esp_mm)
 
 ENDIF ()
 
-IF (${IDF_TARGET} STREQUAL "esp32p4") 
+IF (${IDF_TARGET} STREQUAL "esp32p4")
 
 list(APPEND public_include_dirs "./hw/include")
 list(APPEND private_include_dirs  "./hw/hal/esp32p4"
@@ -43,8 +43,7 @@ idf_component_register(SRC_DIRS "${src_dirs}"
                        PRIV_INCLUDE_DIRS "${private_include_dirs}"
                        REQUIRES "${public_requires}")
 
-add_prebuilt_library(openh264 "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libopenh264.a" PRIV_REQUIRES esp_h264)
-set(TARGET_LIB_NAME openh264 "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libtinyh264.a")
+set(TARGET_LIB_NAME "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libtinyh264.a"  "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libopenh264.a")
 target_link_libraries(${COMPONENT_TARGET} "-Wl,--start-group" ${TARGET_LIB_NAME} "-Wl,--end-group")
 
 IF (${IDF_TARGET} STREQUAL "esp32s3") 
