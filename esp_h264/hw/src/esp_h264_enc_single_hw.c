@@ -119,7 +119,8 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
     /** The descriptor's buffer must aligned 8 byte. */
     uint8_t *bs = esp_h264_enc_hw_slice_header_align8(out_frame, slice_nal_len, &hw_hd->h264_hal);
     int out_frame_len = (bs - out_frame);
-    esp_h264_cache_check_and_writeback(out_frame, out_frame_len);
+    // Although slice head will be overwrote, always write back to avoid cache missing
+    esp_h264_cache_check_and_writeback(out_frame, (slice_nal_len + 7) >> 3);
     /** Configure descriptor to prevent the input frame buffer and output frame buffer, MVM buffer changing */
     esp_h264_enc_hw_cfg_dma_yuv_bs(param_hd, &hw_hd->dma2d_hal, hw_hd->dsc_yuv, in_frame, hw_hd->dsc_bs, bs, out_frame_size - out_frame_len);
     esp_h264_err_t ret = esp_h264_enc_hw_cfg_dma_mvm(param_hd, &hw_hd->dma2d_hal);

@@ -19,6 +19,7 @@ set(priv_requires
         esp_h264
         # general
         unity
+        esp_psram
 )
 
 idf_component_register(SRCS ${srcs}
