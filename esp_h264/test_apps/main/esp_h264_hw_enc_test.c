@@ -168,13 +168,13 @@ esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg)
     int index_c = 0;
 
     in_frame.raw_data.len = (cfg.res.width * cfg.res.height + (cfg.res.width * cfg.res.height >> 1));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_SPIRAM);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
     }
     out_frame.raw_data.len = (cfg.res.width * cfg.res.height + (cfg.res.width * cfg.res.height >> 1)) / 10;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_SPIRAM);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
