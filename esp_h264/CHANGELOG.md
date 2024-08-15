@@ -1,3 +1,7 @@
+## 1.0.4
+
+- Fixed memory wrapper allocating incorrect memory capabilities in the decoder
+
 ## 1.0.3
 
 - Fixed slice header error when cache missing
