@@ -1,0 +1,12 @@
+[mapping:tinyh264]
+archive:libtinyh264.a
+entries:
+    if ESP_H264_DECODER_IRAM = y:
+        h264bsd_reconstruct (noflash)
+        h264bsd_cavlc (noflash)
+        h264bsd_transform (noflash)
+        h264bsd_vlc (noflash)
+        h264bsd_stream (noflash)
+        h264bsd_intra_prediction (noflash)
+    else:
+        * (default)

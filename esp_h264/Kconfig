@@ -1,0 +1,32 @@
+menu "ESP H264 Configuration"
+
+    config ESP_H264_DECODER_IRAM
+        bool "Place part of H264 decoder into IRAM"
+        default "y"
+        help 
+            If this option is enabled, part of H264 decoder will be placed into IRAM,
+            which will increase the size by approximately 22KB.
+
+    config ESP_H264_DUAL_TASK
+        bool "Enable dual task for H264 decoder"
+        default "n"
+        help
+            If this option is enabled, H264 decoder will create two tasks to accelerate the decoding process.
+
+    config ESP_H264_DUAL_TASK_CORE
+        int "Task core ID for H264 decoder task"
+        depends on ESP_H264_DUAL_TASK
+        default 1
+        range 0 1
+        help
+            The second task core ID for H264 decoder task.
+
+    config ESP_H264_DUAL_TASK_PRIORITY
+        int "Task priority for H264 decoder task"
+        depends on ESP_H264_DUAL_TASK
+        default 17
+        range 1 22
+        help
+            The second task priority for H264 decoder task.
+
+endmenu

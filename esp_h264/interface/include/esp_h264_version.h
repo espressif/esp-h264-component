@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.0.3"
+#define ESP_H264_VERSION "1.1.0"
 
 /**
  *  Features:

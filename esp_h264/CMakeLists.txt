@@ -1,3 +1,10 @@
+if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER "5.3")
+    if (${IDF_TARGET} STREQUAL "esp32p4")
+        message(FATAL_ERROR "Due to a known compiler issue, ESP32-P4 only supports esp_h264 v1.1.0 on IDF 5.3. This issue will be fixed in a future update. "
+                            "Please switch to IDF 5.3 or use an earlier version of esp_h264 (v1.0.4).")
+    endif()
+endif()
+
 set(public_include_dirs "./interface/include"
                         "./sw/include"
                         "./port/include/")
@@ -41,7 +48,8 @@ idf_component_register(SRC_DIRS "${src_dirs}"
                        EXCLUDE_SRCS "${exclude_srcs}"
                        INCLUDE_DIRS "${public_include_dirs}"
                        PRIV_INCLUDE_DIRS "${private_include_dirs}"
-                       REQUIRES "${public_requires}")
+                       REQUIRES "${public_requires}"
+                       LDFRAGMENTS "linker.lf")
 
 set(TARGET_LIB_NAME "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libtinyh264.a"  "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libopenh264.a")
 target_link_libraries(${COMPONENT_TARGET} "-Wl,--start-group" ${TARGET_LIB_NAME} "-Wl,--end-group")

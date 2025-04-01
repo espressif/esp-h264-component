@@ -1,3 +1,11 @@
+# Changelog
+
+## 1.1.0
+
+- Improved decoder performance
+- Added support for dual-task decoding
+- Updated decoder profile support from baseline profile to constrained baseline profile
+
 ## 1.0.4
 
 - Fixed memory wrapper allocating incorrect memory capabilities in the decoder

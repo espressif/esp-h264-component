@@ -106,7 +106,13 @@ esp_h264_err_t esp_h264_dec_sw_new(const esp_h264_dec_cfg_sw_t *cfg, esp_h264_de
 
     /* Parameter initalization */
     esp_h264_err_t ret = ESP_H264_ERR_OK;
-    sw_hd->dec_hd = h264bsdAlloc();
+    h264bsd_cfg_t tinyh264_cfg = H264BSD_CFG_DEFAULT();
+#if (CONFIG_ESP_H264_DUAL_TASK)
+    tinyh264_cfg.dualTaskEnable = 1;
+    tinyh264_cfg.dualTaskCore = CONFIG_ESP_H264_DUAL_TASK_CORE;
+    tinyh264_cfg.dualTaskPriority = CONFIG_ESP_H264_DUAL_TASK_PRIORITY;
+#endif
+    sw_hd->dec_hd = h264bsdAlloc(&tinyh264_cfg);
     ESP_H264_GOTO_ON_FALSE(sw_hd->dec_hd != NULL, ret, __dec_exit__, TAG, "No memory for decoder handle");
 
     /** Encoder handle configure */
