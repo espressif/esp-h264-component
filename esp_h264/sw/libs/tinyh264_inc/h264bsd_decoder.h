@@ -59,17 +59,28 @@ enum {
 ------------------------------------------------------------------------------*/
 typedef void *h264bsd_hd_t;
 
+typedef struct {
+    u32 dualTaskEnable;
+    u32 dualTaskCore;
+    u32 dualTaskPriority;
+} h264bsd_cfg_t;
+
+#define H264BSD_CFG_DEFAULT()  \
+{                              \
+    .dualTaskEnable = 0,       \
+    .dualTaskCore = 1,         \
+    .dualTaskPriority = 17,    \
+}
 
 /*------------------------------------------------------------------------------
     4. Function prototypes
 ------------------------------------------------------------------------------*/
 
 u32 h264bsdInit(h264bsd_hd_t hd, u32 noOutputReordering);
-// u32 h264bsdDecode(h264bsd_hd_t hd, u8 *byteStrm, u32 len, u8 **picture, u32 *width, u32 *height);
 u32 h264bsdDecode(h264bsd_hd_t hd, u8 *byteStrm, u32 *len, u8 **picture, u32 *width, u32 *height);
 void h264bsdShutdown(h264bsd_hd_t hd);
 u32 h264bsdDecodeInternal(h264bsd_hd_t hd, u8 *byteStrm, u32 len, u32 *readBytes, u32 *width, u32 *height);
-h264bsd_hd_t h264bsdAlloc(void);
+h264bsd_hd_t h264bsdAlloc(h264bsd_cfg_t *cfg);
 void h264bsdFree(h264bsd_hd_t hd);
 
 const char *esp_tinyh264_get_version(void);
