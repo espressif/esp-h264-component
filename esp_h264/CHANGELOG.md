@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Fixed compatibility issue by temporarily disabling HWLP for ESP32-P4 in the decoder
+
 ## 1.1.0
 
 - Improved decoder performance
