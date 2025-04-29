@@ -36,7 +36,7 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 
 | ESP_H264 Version | ESP32-S3  | ESP32-P4  |
 | ---------------- | --------- | --------- |
-| v1.1.0           | Supported | Supported |
+| v1.1.1           | Supported | Supported |
 
 ## Features
 
@@ -140,11 +140,3 @@ For the **dual task** decoder implementation, the performance is as follows:
 ## Example
 
 Please refer to the files test_apps/esp_h264\_\*\_test.c and test_apps/esp_h264\_\*\_test.h for more details on API usage.
-
-## FAQ
-
-1. Why does build fail when using ESP32-P4?
-
-    Due to a known compiler issue, ESP32-P4 only supports esp_h264 v1.1.0 on IDF 5.3. This issue will be fixed in a future update. Please switch to IDF 5.3 or use an earlier version of esp_h264 (v1.0.4).
-
-    If you need to run esp_h264 v1.1.0 on a newer version of IDF, please create an issue in the [esp-adf](https://github.com/espressif/esp-adf/issues) repository to contact us.

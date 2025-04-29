@@ -1,10 +1,3 @@
-if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER "5.3")
-    if (${IDF_TARGET} STREQUAL "esp32p4")
-        message(FATAL_ERROR "Due to a known compiler issue, ESP32-P4 only supports esp_h264 v1.1.0 on IDF 5.3. This issue will be fixed in a future update. "
-                            "Please switch to IDF 5.3 or use an earlier version of esp_h264 (v1.0.4).")
-    endif()
-endif()
-
 set(public_include_dirs "./interface/include"
                         "./sw/include"
                         "./port/include/")
