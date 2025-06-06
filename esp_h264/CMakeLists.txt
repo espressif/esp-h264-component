@@ -21,6 +21,8 @@ list(APPEND public_requires esp_mm)
 
 ENDIF ()
 
+list(APPEND public_requires freertos pthread newlib )
+
 IF (${IDF_TARGET} STREQUAL "esp32p4")
 
 list(APPEND public_include_dirs "./hw/include")
@@ -44,8 +46,11 @@ idf_component_register(SRC_DIRS "${src_dirs}"
                        REQUIRES "${public_requires}"
                        LDFRAGMENTS "linker.lf")
 
-set(TARGET_LIB_NAME "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libtinyh264.a"  "${CMAKE_CURRENT_SOURCE_DIR}/sw/libs/${IDF_TARGET}/libopenh264.a")
-target_link_libraries(${COMPONENT_TARGET} "-Wl,--start-group" ${TARGET_LIB_NAME} "-Wl,--end-group")
+add_prebuilt_library(tinyh264 "${CMAKE_CURRENT_LIST_DIR}/sw/libs/${CONFIG_IDF_TARGET}/libtinyh264.a"
+                    REQUIRES freertos)
+add_prebuilt_library(openh264 "${CMAKE_CURRENT_LIST_DIR}/sw/libs/${CONFIG_IDF_TARGET}/libopenh264.a"
+                    REQUIRES freertos)
+target_link_libraries(${COMPONENT_LIB} INTERFACE tinyh264 openh264)
 
 IF (${IDF_TARGET} STREQUAL "esp32s3") 
 
