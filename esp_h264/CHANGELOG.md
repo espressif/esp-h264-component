@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+- Fixed compatibility issue by adding POSIX compatibility layer and resolving FreeRTOS symbol linking problems in static libraries
+- Enhanced CMakeLists.txt with proper dependency management for FreeRTOS pthread and newlib components
+
 ## 1.1.1
 
 - Fixed compatibility issue by temporarily disabling HWLP for ESP32-P4 in the decoder

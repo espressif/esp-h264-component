@@ -140,3 +140,26 @@ For the **dual task** decoder implementation, the performance is as follows:
 ## Example
 
 Please refer to the files test_apps/esp_h264\_\*\_test.c and test_apps/esp_h264\_\*\_test.h for more details on API usage.
+
+# FAQ
+
+## Performance Issues
+
+### Q: Why is decoding speed slow on ESP32-P4?
+
+**A:** Decoding performance depends on several factors:
+
+- **Resolution**: Higher resolutions require more processing power
+- **Task configuration**: Use dual-task decoder for better performance
+- **Memory allocation**: Ensure sufficient SPIRAM is available
+- **Stream complexity**: Complex H.264 streams take more time to decode
+
+**Performance optimization tips:**
+- Use dual-task decoder implementation (configure task core and priority via menuconfig)
+   ```
+   ESP_H264_DECODER_IRAM=1
+   ESP_H264_DUAL_TASK=1
+   ```
+- Lower resolution if possible (e.g., 640x480 instead of 1280x720)
+- Ensure adequate memory allocation
+- Check if the input H.264 stream uses supported profile (constrained baseline)
