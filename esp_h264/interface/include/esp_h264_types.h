@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #define ESP_H264_QP_MAX       (51)  /*<! H264 support maximum quantization parameter (QP) */
+#define ESP_H264_4CC(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
 /**
  * @brief  The given code snippet defines a structure called `esp_h264_err_t`
@@ -36,6 +37,14 @@ typedef enum {
  *        |-------------------------------|--------------|--------------|--------------|
  *        | enum                          |  SW encoedr  |  HW encoder  | SW decoder   |
  *        |-------------------------------|--------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_BGR888       |  un-supported|  supported   | un-supported |
+ *        |-------------------------------|--------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_BGR565_BE    |  un-supported|  supported   | un-supported |
+ *        |-------------------------------|--------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_VUY          |  un-supported|  supported   | un-supported |
+ *        |-------------------------------|--------------|--------------|--------------|
+ *        | ESP_H264_RAW_FMT_UYVY         |  un-supported|  supported   | un-supported |
+ *        |-------------------------------|--------------|--------------|--------------|
  *        | ESP_H264_RAW_FMT_YUYV         |  supported   | un-supported | un-supported |
  *        |-------------------------------|--------------|--------------|--------------|
  *        | ESP_H264_RAW_FMT_I420         |  supported   | un-supported |  supported   |
@@ -44,22 +53,26 @@ typedef enum {
  *        |-------------------------------|--------------|--------------|--------------|
  */
 typedef enum {
-    ESP_H264_RAW_FMT_YUYV,         /*<! The storage format is YUV422 packet. The data order is Y U Y V... for per line */
-    ESP_H264_RAW_FMT_I420,         /*<! The storage format is YUV420 planer（IYUV). The data order is to store all Y first then all U and finally all V */
-    ESP_H264_RAW_FMT_O_UYY_E_VYY,  /*<! The storage format is YUV420 packet, the data order is as follows
-                                        |-------------|-------------------------------|
-                                        | line number |         data order            |
-                                        |-------------|-------------------------------|
-                                        |   1         |         u y y u y y u y y...  |
-                                        |-------------|-------------------------------|
-                                        |   2         |         v y y v y y v y y...  |
-                                        |-------------|-------------------------------|
-                                        |   3         |         u y y u y y u y y...  |
-                                        |-------------|-------------------------------|
-                                        |   4         |         v y y v y y v y y...  |
-                                        |-------------|-------------------------------|
-                                        |   ...       |         ...                   |
-                                        |-------------|-------------------------------|
+    ESP_H264_RAW_FMT_BGR888      = ESP_H264_4CC('B', 'G', 'R', '3'),  /*<! BGR888 */
+    ESP_H264_RAW_FMT_BGR565_BE   = ESP_H264_4CC('B', 'G', 'R', 'B'),  /*<! RGB565 big endian */
+    ESP_H264_RAW_FMT_VUY         = ESP_H264_4CC('Y', '3', '0', '8'),  /*<! VUY */
+    ESP_H264_RAW_FMT_UYVY        = ESP_H264_4CC('U', 'Y', 'V', 'Y'),  /*<! UYVY */
+    ESP_H264_RAW_FMT_YUYV        = ESP_H264_4CC('Y', 'U', 'Y', 'V'),  /*<! The storage format is YUV422 packet. The data order is Y U Y V... for per line */
+    ESP_H264_RAW_FMT_I420        = ESP_H264_4CC('Y', 'U', '1', '2'),  /*<! The storage format is YUV420 planer（IYUV). The data order is to store all Y first then all U and finally all V */
+    ESP_H264_RAW_FMT_O_UYY_E_VYY = ESP_H264_4CC('O', 'U', 'E', 'V'),  /*<! The storage format is YUV420 packet, the data order is as follows
+                                                                           |-------------|-------------------------------|
+                                                                           | line number |         data order            |
+                                                                           |-------------|-------------------------------|
+                                                                           |   1         |         u y y u y y u y y...  |
+                                                                           |-------------|-------------------------------|
+                                                                           |   2         |         v y y v y y v y y...  |
+                                                                           |-------------|-------------------------------|
+                                                                           |   3         |         u y y u y y u y y...  |
+                                                                           |-------------|-------------------------------|
+                                                                           |   4         |         v y y v y y v y y...  |
+                                                                           |-------------|-------------------------------|
+                                                                           |   ...       |         ...                   |
+                                                                           |-------------|-------------------------------|
  */
 } esp_h264_raw_format_t;
 
@@ -225,6 +238,50 @@ typedef struct {
                                           If H.264 encode data have only I-frame and P-frame, the DTS is equal to PTS.
  */
 } esp_h264_dec_in_frame_t;
+
+/**
+ * @brief  Get bytes per pixel (BPP) by picture type
+ * @param  pic_type  Picture format type
+ * @return Bytes per pixel value
+ */
+#define ESP_H264_GET_BPP_BY_PIC_TYPE(pic_type) \
+    ((pic_type) == ESP_H264_RAW_FMT_I420 || (pic_type) == ESP_H264_RAW_FMT_O_UYY_E_VYY ? 1.5f : \
+     (pic_type) == ESP_H264_RAW_FMT_BGR565_BE || (pic_type) == ESP_H264_RAW_FMT_UYVY || (pic_type) == ESP_H264_RAW_FMT_YUYV ? 2.0f : \
+     3.0f)
+
+#if !defined(CONFIG_ESP_REV_MIN_FULL) || CONFIG_ESP_REV_MIN_FULL < 300
+
+/**
+ * @brief  Check if picture type is supported by hardware (HW Version 3)
+ * @note   HW Version 3 only supports ESP_H264_RAW_FMT_O_UYY_E_VYY format
+ * @param  pic_type  Picture format type to check
+ * @return true if supported, false otherwise
+ */
+#define ESP_H264_HW_IS_SUPPORTED_PIC_TYPE(pic_type) \
+    ((pic_type) == ESP_H264_RAW_FMT_O_UYY_E_VYY)
+
+#else
+
+/**
+ * @brief  Check if picture type is supported by hardware (HW Version 1/2)
+ * @note   HW Version 1/2 supports multiple formats including:
+ *         - ESP_H264_RAW_FMT_GREY (Grayscale)
+ *         - ESP_H264_RAW_FMT_BGR888 (24-bit RGB)
+ *         - ESP_H264_RAW_FMT_BGR565_BE (16-bit RGB Big-Endian)
+ *         - ESP_H264_RAW_FMT_VUY (YUV 4:4:4)
+ *         - ESP_H264_RAW_FMT_UYVY (YUV 4:2:2)
+ *         - ESP_H264_RAW_FMT_O_UYY_E_VYY (Optimized YUV 4:2:0)
+ * @param  pic_type  Picture format type to check
+ * @return true if supported, false otherwise
+ */
+#define ESP_H264_HW_IS_SUPPORTED_PIC_TYPE(pic_type) \
+    ((pic_type) == ESP_H264_RAW_FMT_BGR888 || \
+     (pic_type) == ESP_H264_RAW_FMT_BGR565_BE || \
+     (pic_type) == ESP_H264_RAW_FMT_VUY || \
+     (pic_type) == ESP_H264_RAW_FMT_UYVY || \
+     (pic_type) == ESP_H264_RAW_FMT_O_UYY_E_VYY)
+
+#endif  /* defined(CONFIG_ESP_REV_MIN_FULL) && CONFIG_ESP_REV_MIN_FULL < 300 */
 
 #ifdef __cplusplus
 }

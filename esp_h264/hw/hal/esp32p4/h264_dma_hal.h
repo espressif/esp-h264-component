@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,6 +19,27 @@ extern "C" {
 #define H264_DMA_BURST_SIZE           (4)
 #define H264_DMA_END_ADDR             (~0)
 
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+
+/**
+ * @brief  Bytes per pixel
+ *
+ * @note  The pbyte is used to replace the original picture pixels.
+ *        0: 0.5byte/pix
+ *        1: 1byte/pix
+ *        2: 1.5byte/pix
+ *        3: 2byte/pix
+ *        4: 3byte/pix
+ */
+typedef enum {
+    H264_DMA_PBYTE_0_5 = 0,
+    H264_DMA_PBYTE_1   = 1,
+    H264_DMA_PBYTE_1_5 = 2,
+    H264_DMA_PBYTE_2   = 3,
+    H264_DMA_PBYTE_3   = 4,
+} h264_dma_pbyte_t;
+
+#endif
 /**
  * @brief  DMA configure information
  */
@@ -197,6 +218,18 @@ void h264_dma_hal_cfg_bs_dsc(h264_dma_hal_context_t *hal, uint32_t dsc_addr);
  * @param  dsc_addr  Descriptor address
  */
 void h264_dma_hal_cfg_mvm_dsc(h264_dma_hal_context_t *hal, uint32_t dsc_addr);
+
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+
+/**
+ * @brief  Set the bytes per pixel
+ *
+ * @param  hal   DMA peripheral address
+ * @param  pbyte Bytes per pixel
+ */
+void h264_dma_hal_set_pbyte(h264_dma_hal_context_t *hal, h264_dma_pbyte_t pbyte);
+
+#endif
 
 #ifdef __cplusplus
 }

@@ -20,22 +20,17 @@ esp_h264_err_t single_sw_enc_thread_test(esp_h264_enc_cfg_sw_t cfg)
     esp_h264_resolution_t res;
     esp_h264_enc_rc_t rc;
     uint32_t frame_count = 0;
-    int ret_w = 0;
     uint8_t gop;
     uint8_t fps;
     esp_h264_enc_param_handle_t param_hd;
     int index_c = 0;
-    if (cfg.pic_type == ESP_H264_RAW_FMT_I420) {
-        in_frame.raw_data.len = (cfg.res.width * cfg.res.height + (cfg.res.width * cfg.res.height >> 1));
-    } else if (cfg.pic_type == ESP_H264_RAW_FMT_YUYV) {
-        in_frame.raw_data.len = (cfg.res.width * cfg.res.height << 1);
-    }
+    in_frame.raw_data.len = (int)( (float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
     in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, MALLOC_CAP_INTERNAL);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
     }
-    out_frame.raw_data.len = (cfg.res.width * cfg.res.height + (cfg.res.width * cfg.res.height >> 1)) / 10;
+    out_frame.raw_data.len = (int)( (float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type)) / 10;
     out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, MALLOC_CAP_INTERNAL);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
@@ -90,11 +85,7 @@ esp_h264_err_t single_sw_enc_thread_test(esp_h264_enc_cfg_sw_t cfg)
     }
     while (1) {
         index_c++;
-        if (cfg.pic_type == ESP_H264_RAW_FMT_I420) {
-            ret_w = read_enc_cb_i420(&in_frame, cfg.res.width, cfg.res.height);
-        } else if (cfg.pic_type == ESP_H264_RAW_FMT_YUYV) {
-            ret_w = read_enc_cb_yuyv(&in_frame, cfg.res.width, cfg.res.height);
-        }
+        int ret_w = read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type);
         if (ret_w <= 0) {
             break;
         }

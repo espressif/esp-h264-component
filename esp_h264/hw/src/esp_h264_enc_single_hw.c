@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -24,6 +24,9 @@ typedef struct esp_h264_hw_handle {
     uint8_t                     gop;
     esp_h264_mutex_t            frame_done;
     esp_h264_intr_hd_t          intr_hd;
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+    bool                        bs_bit_overflow;
+#endif
 } esp_h264_hw_handle_t;
 
 static void h264_gop_isr(void *arg)
@@ -51,6 +54,12 @@ static void h264_gop_isr(void *arg)
         } else if (status & H264_INTR_FRAME_DONE) {
             h264_hal_clear_intr_status(&hw_hd->h264_hal, H264_INTR_FRAME_DONE);
             esp_h264_mutex_unlock_from_isr(hw_hd->frame_done, &xHigherPriorityTaskWoken);
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+        } else if (status & H264_INTR_BS_BIT_OVERFLOW) {
+            h264_hal_clear_intr_status(&hw_hd->h264_hal, H264_INTR_BS_BIT_OVERFLOW);
+            hw_hd->bs_bit_overflow = true;
+            esp_h264_mutex_unlock_from_isr(hw_hd->frame_done, &xHigherPriorityTaskWoken);
+#endif
         }
     }
     if (xHigherPriorityTaskWoken) {
@@ -114,6 +123,11 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
         slice_start_code = (uint32_t *)((uint32_t)out_frame + (nal_bit_len >> 3));
         slice_nal_len += nal_bit_len;
     }
+    /** Set the pbyte of DMA2D*/
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+    esp_h264_enc_hw_set_pbyte(param_hd, &hw_hd->dma2d_hal);
+#endif
+
     /** Configure slice header */
     slice_nal_len += esp_h264_enc_hw_set_slice((uint8_t *)slice_start_code, out_frame_size - (slice_nal_len >> 3), !hw_hd->frame_num, hw_hd->frame_num, qp_delta, true);
     /** The descriptor's buffer must aligned 8 byte. */
@@ -167,9 +181,16 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
         esp_h264_rc_end(rc_hd, enc_bits, qp_sum, mad);
     }
     *out_len += out_frame_len;
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
     if (h264_hal_get_bs_bit_overflow(&hw_hd->h264_hal)) {
         return ESP_H264_ERR_OVERFLOW;
     }
+#else
+    if (hw_hd->bs_bit_overflow) {
+        hw_hd->bs_bit_overflow = false;
+        return ESP_H264_ERR_OVERFLOW;
+    }
+#endif
     return ESP_H264_ERR_OK;
 }
 
@@ -177,17 +198,19 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
     esp_h264_err_t ret = ESP_H264_ERR_OK;
-    hw_hd->frame_num = hw_hd->frame_num % hw_hd->gop;
     out_frame->dts = in_frame->pts;
     out_frame->pts = in_frame->pts;
     out_frame->frame_type = ESP_H264_FRAME_TYPE_P;
+    uint8_t gop = 0;
+    esp_h264_enc_get_gop(&hw_hd->param_hd->base, &gop);
     /** Intra (I-frame) check */
-    if (!hw_hd->frame_num) {
+    if (gop != hw_hd->gop || hw_hd->frame_num % hw_hd->gop == 0) {
         /** Currently, the I-frame is instantaneous decoding refresh frame(IDR-frame).
          * In IDR-frame, the GOP can be updating.*/
         out_frame->frame_type = ESP_H264_FRAME_TYPE_IDR;
-        esp_h264_enc_get_gop(&hw_hd->param_hd->base, &hw_hd->gop);
-        h264_hal_set_gop(&hw_hd->h264_hal, hw_hd->gop, true);
+        h264_hal_set_gop(&hw_hd->h264_hal, gop, true);
+        hw_hd->gop = gop;
+        hw_hd->frame_num = 0;
     }
     esp_h264_cache_check_and_writeback(in_frame->raw_data.buffer, in_frame->raw_data.len);
     /** In multi-thread, the parameter cann't be set in encoding.
@@ -274,7 +297,8 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 {
     /* Parameter check */
     ESP_H264_RET_ON_FALSE(cfg && out_enc, ESP_H264_ERR_ARG, TAG, "Invalid h264 configure and handle parameter");
-    ESP_H264_RET_ON_FALSE(cfg->pic_type == ESP_H264_RAW_FMT_O_UYY_E_VYY, ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
+    bool is_supported = ESP_H264_HW_IS_SUPPORTED_PIC_TYPE(cfg->pic_type);
+    ESP_H264_RET_ON_FALSE(is_supported, ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter, pic_type: %x", cfg->pic_type);
     ESP_H264_RET_ON_FALSE((cfg->rc.qp_max >= cfg->rc.qp_min) && (cfg->rc.qp_max <= ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "Invalid h264 QP parameter");
     ESP_H264_RET_ON_FALSE((esp_h264_enc_hw_res_check(cfg->res.width, cfg->res.height) == ESP_H264_ERR_OK), ESP_H264_ERR_ARG, TAG, "Invalid h264 resolution parameter");
     ESP_H264_RET_ON_FALSE((cfg->fps > 0) && (cfg->gop > 0), ESP_H264_ERR_ARG, TAG, "Invalid h264 FPS and GOP parameter");
@@ -307,6 +331,7 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
         .qp_max = cfg->rc.qp_max,
         .bitrate = cfg->rc.bitrate,
         .fps = cfg->fps,
+        .pic_type = cfg->pic_type,
     };
 
     /** Create encoder handle */
@@ -328,6 +353,11 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 
     /** Configure parameter*/
     esp_h264_enc_set_gop(&hw_hd->param_hd->base, cfg->gop);
+
+    /** Set the pbyte of DMA2D*/
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+    esp_h264_enc_hw_set_pbyte(hw_hd->param_hd, &hw_hd->dma2d_hal);
+#endif
 
     /** Allocated de-blocking filter temporary parameter memory*/
     hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(16, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(cfg->res.width), &actual_size, ESP_H264_MEM_INTERNAL);

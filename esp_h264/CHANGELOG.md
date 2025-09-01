@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0
+
+### Features
+- Added hardware encoder support for multiple pixel formats on ESP32-P4(>=3.0.0):
+  - BGR888 (24-bit RGB format)
+  - BGR565_BE (16-bit RGB Big-Endian format)
+  - VUY (YUV 4:4:4 format)
+  - UYVY (YUV 4:2:2 format)
+- Added hardware version detection macro `ESP_H264_HW_IS_SUPPORTED_PIC_TYPE`
+- Added `ESP_H264_GET_BPP_BY_PIC_TYPE` macro to determine the number of bits per pixel for a given picture type
+- Added support for ESP32P4 V3 hardware versions
+
+### Fixes
+- Fixed a bug where the hardware encoder failed to set GOP via `esp_h264_enc_set_gop`
+
 ## 1.1.4
 
 - Fixed wrong frame type output for the H264 software encoder

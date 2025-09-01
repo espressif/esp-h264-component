@@ -6,9 +6,9 @@ set(private_include_dirs  "./port/inc/"
                           "./sw/libs/openh264_inc"
                           "./sw/src/")
 set(src_dirs "./port/src/"
-             "./interface/src" 
+             "./interface/src"
              "./sw/src")
-       
+
 IF ("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_LESS "5.3" )
 
 set(exclude_srcs "./port/src/esp_h264_alloc.c"
@@ -24,14 +24,27 @@ ENDIF ()
 IF (${IDF_TARGET} STREQUAL "esp32p4")
 
 list(APPEND public_include_dirs "./hw/include")
-list(APPEND private_include_dirs  "./hw/hal/esp32p4"
-                                  "./hw/soc/esp32p4") 
+list(APPEND private_include_dirs  "./hw/hal/esp32p4" "./hw/soc/esp32p4")
+
+idf_build_get_property(p4_rev CONFIG_ESP32P4_REV_MIN_FULL)
+
+if(p4_rev)
+    if(p4_rev GREATER_EQUAL 300)
+        list(APPEND private_include_dirs "./hw/soc/esp32p4/hw_ver3")
+    else()
+        list(APPEND private_include_dirs "./hw/soc/esp32p4/hw_ver1")
+    endif()
+else()
+    message(STATUS "CONFIG_ESP32P4_REV_MIN_FULL not defined, using default version")
+    list(APPEND private_include_dirs "./hw/soc/esp32p4/hw_ver1")
+endif()
+
 list(APPEND src_dirs "./hw/src"
                      "./hw/hal/esp32p4" )
 
 ENDIF ()
 
-IF (${IDF_TARGET} STREQUAL "esp32s3") 
+IF (${IDF_TARGET} STREQUAL "esp32s3")
 
 list(APPEND src_dirs "./sw/src/asm/${IDF_TARGET}")
 
@@ -50,7 +63,7 @@ add_prebuilt_library(openh264 "${CMAKE_CURRENT_LIST_DIR}/sw/libs/${CONFIG_IDF_TA
                     REQUIRES freertos)
 target_link_libraries(${COMPONENT_LIB} INTERFACE tinyh264 openh264)
 
-IF (${IDF_TARGET} STREQUAL "esp32s3") 
+IF (${IDF_TARGET} STREQUAL "esp32s3")
 
 add_definitions(-DHAVE_ESP32S3 )
 

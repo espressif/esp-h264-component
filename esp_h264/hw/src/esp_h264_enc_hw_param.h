@@ -1,11 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
 
+#include "sdkconfig.h"
 #include "esp_h264_enc_param_hw.h"
 #include "h264_hal.h"
 #include "h264_dma_hal.h"
@@ -30,13 +31,14 @@ extern "C" {
  * @brief  Configure information
  */
 typedef struct esp_h264_set_cfg {
-    esp_h264_set_dev_t device;   /*<! Device handle that configure encoders of different channels */
-    uint16_t           width;    /*<! Width of picture */
-    uint16_t           height;   /*<! Height of picture */
-    uint8_t            qp_min;   /*<! The minimum quantization parameter(QP) */
-    uint8_t            qp_max;   /*<! The maximum quantization parameter(QP) */
-    uint8_t            fps;      /*<! Frames per second */
-    uint32_t           bitrate;  /*<! Bit per second */
+    esp_h264_set_dev_t    device;   /*<! Device handle that configure encoders of different channels */
+    uint16_t              width;    /*<! Width of picture */
+    uint16_t              height;   /*<! Height of picture */
+    uint8_t               qp_min;   /*<! The minimum quantization parameter(QP) */
+    uint8_t               qp_max;   /*<! The maximum quantization parameter(QP) */
+    uint8_t               fps;      /*<! Frames per second */
+    uint32_t              bitrate;  /*<! Bit per second */
+    esp_h264_raw_format_t pic_type; /*<! Picture type */
 } esp_h264_enc_hw_param_cfg_t;
 
 /**
@@ -194,6 +196,16 @@ esp_h264_err_t esp_h264_enc_hw_set_rc_rate_pred(esp_h264_enc_param_hw_handle_t h
  *       - ESP_H264_ERR_OK  Succeeded
  */
 esp_h264_err_t esp_h264_enc_hw_get_mbres(esp_h264_enc_param_hw_handle_t handle, uint8_t *out_mb_width, uint8_t *out_mb_height);
+
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+/**
+ * @brief  Set the pbyte of DMA2D
+ *
+ * @param[in]  handle     Hardware H.264 encoder parameter set handle
+ * @param[in]  dma2d_hal  The 2DDMA handle
+ */
+void esp_h264_enc_hw_set_pbyte(esp_h264_enc_param_hw_handle_t handle, h264_dma_hal_context_t *dma2d_hal);
+#endif
 
 /**
  * @brief  Check resolution

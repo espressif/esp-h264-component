@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -25,6 +25,9 @@ typedef struct esp_h264_hw_handle {
     uint8_t                     gop;
     esp_h264_mutex_t            frame_done;
     esp_h264_intr_hd_t          intr_hd;
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+    bool                        bs_bit_overflow;
+#endif
 } esp_h264_hw_handle_t;
 
 static void h264_frame_isr(void *arg)
@@ -52,6 +55,12 @@ static void h264_frame_isr(void *arg)
         } else if (status & H264_INTR_FRAME_DONE) {
             h264_hal_clear_intr_status(&hw_hd->h264_hal, H264_INTR_FRAME_DONE);
             esp_h264_mutex_unlock_from_isr(hw_hd->frame_done, &xHigherPriorityTaskWoken);
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+        } else if (status & H264_INTR_BS_BIT_OVERFLOW) {
+            h264_hal_clear_intr_status(&hw_hd->h264_hal, H264_INTR_BS_BIT_OVERFLOW);
+            hw_hd->bs_bit_overflow = true;
+            esp_h264_mutex_unlock_from_isr(hw_hd->frame_done, &xHigherPriorityTaskWoken);
+#endif
         }
     }
     if (xHigherPriorityTaskWoken) {
@@ -102,6 +111,12 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
         /** Slice header will record the delta QP */
         qp_delta = qp - qp_init;
     }
+
+    /** Set the pbyte of DMA2D*/
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+    esp_h264_enc_hw_set_pbyte(param_hd, &hw_hd->dma2d_hal);
+#endif
+
     uint32_t *slice_start_code = (uint32_t *)out_frame;
     uint32_t slice_nal_len = 0;
     if (!hw_hd->frame_num) {
@@ -165,9 +180,16 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
         esp_h264_rc_end(rc_hd, enc_bits, qp_sum, mad);
     }
     *out_len += out_frame_len;
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
     if (h264_hal_get_bs_bit_overflow(&hw_hd->h264_hal)) {
         return ESP_H264_ERR_OVERFLOW;
     }
+#else
+    if (hw_hd->bs_bit_overflow) {
+        hw_hd->bs_bit_overflow = false;
+        return ESP_H264_ERR_OVERFLOW;
+    }
+#endif
     return ESP_H264_ERR_OK;
 }
 
@@ -182,21 +204,23 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
     out_frame[1]->dts = in_frame[1]->pts;
     out_frame[1]->pts = in_frame[1]->pts;
     out_frame[1]->frame_type = ESP_H264_FRAME_TYPE_P;
+    uint8_t gop0 = 0;
+    uint8_t gop1 = 0;
+    esp_h264_enc_get_gop(&hw_hd->param_hd0->base, &gop0);
+    esp_h264_enc_get_gop(&hw_hd->param_hd1->base, &gop1);
+    uint8_t gop = (uint8_t)(((uint16_t)gop0 + (uint16_t)gop1) >> 1);
     /** Intra (I-frame) check */
-    if (hw_hd->frame_num == 0) {
+    if (gop != hw_hd->gop || hw_hd->frame_num % hw_hd->gop == 0) {
         /** Currently, the I-frame is instantaneous decoding refresh frame(IDR-frame).
          * In IDR-frame, the GOP can be updating.*/
         out_frame[0]->frame_type = ESP_H264_FRAME_TYPE_IDR;
         out_frame[1]->frame_type = ESP_H264_FRAME_TYPE_IDR;
-        uint16_t gop0 = 0;
-        uint16_t gop1 = 0;
-        esp_h264_enc_get_gop(&hw_hd->param_hd0->base, (uint8_t *)&gop0);
-        esp_h264_enc_get_gop(&hw_hd->param_hd1->base, (uint8_t *)&gop1);
         hw_hd->gop = (gop0 + gop1) >> 1;
         esp_h264_enc_set_gop(&hw_hd->param_hd0->base, hw_hd->gop);
         esp_h264_enc_set_gop(&hw_hd->param_hd1->base, hw_hd->gop);
         h264_hal_reset(&hw_hd->h264_hal);
         h264_dma_hal_reset_counter_db(&hw_hd->dma2d_hal);
+        hw_hd->frame_num = 0;
     }
     esp_h264_cache_check_and_writeback(in_frame[0]->raw_data.buffer, in_frame[0]->raw_data.len);
     esp_h264_cache_check_and_writeback(in_frame[1]->raw_data.buffer, in_frame[1]->raw_data.len);
@@ -290,7 +314,8 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
     ESP_H264_RET_ON_FALSE(cfg && out_enc, ESP_H264_ERR_ARG, TAG, "Invalid h264 configure and handle parameter");
     esp_h264_enc_cfg_t enc_cfg[H264_SUP_MAX_CHANNEL] = { cfg->cfg0, cfg->cfg1 };
     for (uint8_t i = 0; i < H264_SUP_MAX_CHANNEL; i++) {
-        ESP_H264_RET_ON_FALSE((enc_cfg[i].pic_type == ESP_H264_RAW_FMT_O_UYY_E_VYY), ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
+        bool is_supported = ESP_H264_HW_IS_SUPPORTED_PIC_TYPE(enc_cfg[i].pic_type);
+        ESP_H264_RET_ON_FALSE(is_supported, ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter, pic_type[%d]: %x", i, enc_cfg[i].pic_type);
         ESP_H264_RET_ON_FALSE((enc_cfg[i].rc.qp_max >= enc_cfg[i].rc.qp_min) && (enc_cfg[i].rc.qp_max <= ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "Invalid h264 QP parameter");
         ESP_H264_RET_ON_FALSE((esp_h264_enc_hw_res_check(enc_cfg[i].res.width, enc_cfg[i].res.height) == ESP_H264_ERR_OK), ESP_H264_ERR_ARG, TAG, "Invalid h264 resolution parameter");
         ESP_H264_RET_ON_FALSE((enc_cfg[i].fps > 0) && (enc_cfg[i].gop > 0), ESP_H264_ERR_ARG, TAG, "Invalid h264 FPS and GOP parameter");
@@ -316,6 +341,7 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
         param_cfg[i].qp_max = enc_cfg[i].rc.qp_max;
         param_cfg[i].bitrate = enc_cfg[i].rc.bitrate;
         param_cfg[i].fps = enc_cfg[i].fps;
+        param_cfg[i].pic_type = enc_cfg[i].pic_type;
     }
     h264_hal_dma_context_cfg_t cfg_h264_dma_hal = { 0 };
     cfg_h264_dma_hal.burst_size = H264_DMA_BURST_SIZE;
@@ -347,6 +373,7 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
     param_cfg[1].device = h264_hal_get_param_dev1(&hw_hd->h264_hal);
 
     for (uint8_t i = 0; i < H264_SUP_MAX_CHANNEL; i++) {
+        /** Set the macroblock resolution */
         h264_hal_set_mbres(param_cfg[i].device, mb_width[i], mb_height[i]);
         /** Create a new parameter handle */
         ret |= esp_h264_enc_hw_new_param(&param_cfg[i], &param_hd[i]);

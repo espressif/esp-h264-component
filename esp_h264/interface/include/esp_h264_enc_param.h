@@ -134,6 +134,18 @@ esp_h264_err_t esp_h264_enc_set_bitrate(esp_h264_enc_param_handle_t handle, uint
  */
 esp_h264_err_t esp_h264_enc_get_bitrate(esp_h264_enc_param_handle_t handle, uint32_t *out_bitrate);
 
+/**
+ * @brief  This function is used to retrieve the bits per pixel from the encoder
+ *
+ * @param[in]   handle       It is a pointer to the H.264 encoding parameters structure
+ * @param[out]  out_bpp      Pointer to a variable to store the retrieved bits per pixel value
+ *
+ * @return
+ *       - ESP_H264_ERR_OK           Succeeded
+ *       - ESP_H264_ERR_ARG          Invalid arguments passed
+ */
+esp_h264_err_t esp_h264_enc_get_bpp(esp_h264_enc_param_handle_t handle, float *out_bpp);
+
 #ifdef __cplusplus
 }
 #endif

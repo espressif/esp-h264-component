@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,6 +7,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "h264_config.h"
 #include "h264_struct.h"
 #include "soc/hp_sys_clkrst_struct.h"
 
@@ -683,8 +684,10 @@ static inline uint32_t h264_ll_get_coded_len(h264_dev_t *h264)
     return h264->frame_code_length.frame_code_length;
 }
 
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
+
 /**
- * @brief  Get bs error
+ * @brief  Get bs error (Version 1 hardware)
  *
  * @param  h264  H.264 peripheral address
  * @return
@@ -693,6 +696,32 @@ static inline bool h264_ll_get_bs_bit_overflow(h264_dev_t *h264)
 {
     return h264->debug_info1.bs_buffer_debug_state;
 }
+
+#else
+
+/**
+ * @brief  Set original picture color space (Version 2 hardware only)
+ *
+ * @param  ctrl         Stream configure handle
+ * @param  color_space  Original picture color space
+ *                      0: RGB888
+ *                      1: RGB565
+ *                      2: YUV444
+ *                      3: YUV422
+ *                      4: YUV420
+ *                      5: GRAY
+ *                      6: Invalid
+ */
+static inline void h264_ll_set_ori_color_space(volatile h264_ctrl_regs_t *ctrl, uint8_t color_space)
+{
+    if (&H264_LL_GET_HW()->ctrl[0] == ctrl) {
+        H264_LL_GET_HW()->ori_conf[0].ori_color_space = color_space;
+    } else {
+        H264_LL_GET_HW()->ori_conf[1].ori_color_space = color_space;
+    }
+}
+
+#endif
 
 #ifdef __cplusplus
 }

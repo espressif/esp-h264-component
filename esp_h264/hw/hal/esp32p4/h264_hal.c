@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -179,10 +179,21 @@ bool h264_hal_get_roi_mode(esp_h264_set_dev_t device, uint8_t *roi_mode, int8_t 
     return false;
 }
 
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
+
 bool h264_hal_get_bs_bit_overflow(h264_hal_context_t *hal)
 {
     return h264_ll_get_bs_bit_overflow(hal->dev);
 }
+
+#else
+
+void h264_hal_set_ori_color_space(volatile h264_ctrl_regs_t *ctrl, h264_ori_color_space_t color_space)
+{
+    h264_ll_set_ori_color_space(ctrl, color_space);
+}
+
+#endif
 
 /*Init */
 void h264_hal_init(h264_hal_context_t *hal, h264_hal_context_cfg_t *cfg)
