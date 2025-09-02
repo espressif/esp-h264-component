@@ -21,8 +21,6 @@ list(APPEND public_requires esp_mm)
 
 ENDIF ()
 
-list(APPEND public_requires freertos pthread newlib )
-
 IF (${IDF_TARGET} STREQUAL "esp32p4")
 
 list(APPEND public_include_dirs "./hw/include")

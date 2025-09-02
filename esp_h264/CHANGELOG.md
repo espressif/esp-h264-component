@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+
+- Fixed a bug where CmakeLists.txt excessive dependence on freertos pthread and newlib components
+
 ## 1.1.2
 
 - Fixed compatibility issue by adding POSIX compatibility layer and resolving FreeRTOS symbol linking problems in static libraries
