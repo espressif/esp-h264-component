@@ -113,6 +113,25 @@ static esp_h264_err_t h264_sw_enc_process(esp_h264_enc_sw_handle_t *sw_hd, esp_h
     default:
         return ESP_H264_ERR_FAIL;
     }
+    switch (sFbi.eFrameType) {
+    case videoFrameTypeIDR:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_IDR;
+        break;
+    case videoFrameTypeI:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_I;
+        break;
+    case videoFrameTypeP:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_P;
+        break;
+
+    case videoFrameTypeInvalid:
+        // fallthrough
+    case videoFrameTypeSKIP:
+        // fallthrough
+    case videoFrameTypeIPMixed:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_INVALID;
+        break;
+    }
     out_frame->length = (uint32_t)sFbi.iFrameSizeInBytes;
     out_frame->pts = (uint32_t)sFbi.uiTimeStamp;
     out_frame->dts = in_frame->pts;
