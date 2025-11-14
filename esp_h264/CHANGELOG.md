@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.4
+
+- Fixed wrong frame type output for the H264 software encoder
+- Added test cases (GOP, FPS, picture type) for H264 software encoder
+
 ## 1.1.3
 
 - Fixed a bug where CmakeLists.txt excessive dependence on freertos pthread and newlib components

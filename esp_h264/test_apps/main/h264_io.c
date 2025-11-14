@@ -151,6 +151,29 @@ int read_enc_cb_i420(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t heig
     return 1;
 }
 
+int read_enc_cb_yuyv(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height)
+{
+    if (index_c > COLOR_NUM) {
+        index_c = 0;
+        return -1;
+    }
+    int cor_idx = index_c % COLOR_NUM;
+    uint8_t y = yuv_table[cor_idx][0];
+    uint8_t u = yuv_table[cor_idx][1];
+    uint8_t v = yuv_table[cor_idx][2];
+    uint8_t *yuyv = frame->raw_data.buffer;
+    for (int j = 0; j < height; j ++) {
+        for (int i = 0; i < width; i += 2) {
+            *yuyv++ = y;
+            *yuyv++ = u;
+            *yuyv++ = y;
+            *yuyv++ = v;
+        }
+    }
+    index_c++;
+    return 1;
+}
+
 int read_dec_cd(uint8_t *inbuf, uint32_t inbuf_len, esp_h264_dec_in_frame_t *frame)
 {
     frame->raw_data.buffer = inbuf;

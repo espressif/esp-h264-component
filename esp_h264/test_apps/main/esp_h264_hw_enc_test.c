@@ -162,6 +162,7 @@ esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg)
     esp_h264_enc_handle_t enc = NULL;
     esp_h264_resolution_t res;
     esp_h264_enc_rc_t rc;
+    uint32_t frame_count = 0;
     uint8_t gop;
     uint8_t fps;
     esp_h264_enc_param_hw_handle_t param_hd;
@@ -287,6 +288,21 @@ esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg)
             goto _exit_;
         }
         write_enc_cb(&out_frame);
+        if (frame_count % cfg.gop == 0) {
+            if (out_frame.frame_type != ESP_H264_FRAME_TYPE_I
+                    && out_frame.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+                printf("frame type error. frame type %d GOP %d line %d \n", out_frame.frame_type, cfg.gop, __LINE__);
+                ret = ESP_H264_ERR_FAIL;
+                goto _exit_;
+            }
+        } else {
+            if (out_frame.frame_type != ESP_H264_FRAME_TYPE_P) {
+                printf("frame type error. frame type %d GOP %d line %d \n", out_frame.frame_type, cfg.gop, __LINE__);
+                ret = ESP_H264_ERR_FAIL;
+                goto _exit_;
+            }
+        }
+        frame_count++;
     }
 _exit_:
     ret |= esp_h264_enc_close(enc);
@@ -309,6 +325,7 @@ esp_h264_err_t dual_hw_enc_thread_test(esp_h264_enc_cfg_dual_hw_t cfg)
     uint8_t gop[2] = { cfg.cfg0.gop, cfg.cfg1.gop };
     uint8_t gop_tmp;
     uint8_t fps;
+    uint32_t frame_count = 0;
     esp_h264_enc_param_hw_handle_t param_hd;
     esp_h264_enc_param_hw_handle_t param_hd0;
     esp_h264_enc_param_hw_handle_t param_hd1;
@@ -411,7 +428,21 @@ esp_h264_err_t dual_hw_enc_thread_test(esp_h264_enc_cfg_dual_hw_t cfg)
         }
         for (int16_t i = 0; i < 2; i++) {
             write_enc_cb(out_frame[i]);
+            for (int16_t i = 0; i < 2; i++) {
+                if (frame_count % base_cfg.gop == 0) {
+                    if (out_frame[i]->frame_type != ESP_H264_FRAME_TYPE_I) {
+                        printf("frame type error. frame type %d GOP %d line %d \n", out_frame[i]->frame_type, base_cfg.gop, __LINE__);
+                        goto _exit_dual_;
+                    }
+                } else {
+                    if (out_frame[i]->frame_type != ESP_H264_FRAME_TYPE_P) {
+                        printf("frame type error. frame type %d GOP %d line %d \n", out_frame[i]->frame_type, base_cfg.gop, __LINE__);
+                        goto _exit_dual_;
+                    }
+                }
+            }
         }
+        frame_count++;
         ret = esp_h264_enc_get_resolution(&param_hd->base, &res);
         if ((ret != ESP_H264_ERR_OK)
                 || (res.width != base_cfg.res.width)

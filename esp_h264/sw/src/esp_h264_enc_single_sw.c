@@ -101,7 +101,7 @@ static esp_h264_err_t h264_sw_enc_process(esp_h264_enc_sw_handle_t *sw_hd, esp_h
     SFrameBSInfo sFbi;
     sFbi.iFrameSizeInBytes = out_frame->raw_data.len;
     sFbi.sLayerInfo[0].pBsBuf = out_frame->raw_data.buffer;
-    int iEncFrames = (*(sw_hd->pPtrEnc))->EncodeFrame(sw_hd->pPtrEnc, &sw_hd->src_pic, &sFbi);
+    int iEncFrames = (*(sw_hd->pPtrEnc))->EncodeFrame(sw_hd->pPtrEnc, (const SSourcePicture *)&sw_hd->src_pic, &sFbi);
     switch (iEncFrames) {
     case cmResultSuccess:
         break;
@@ -112,6 +112,25 @@ static esp_h264_err_t h264_sw_enc_process(esp_h264_enc_sw_handle_t *sw_hd, esp_h
         return ESP_H264_ERR_MEM;
     default:
         return ESP_H264_ERR_FAIL;
+    }
+    switch (sFbi.eFrameType) {
+    case videoFrameTypeIDR:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_IDR;
+        break;
+    case videoFrameTypeI:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_I;
+        break;
+    case videoFrameTypeP:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_P;
+        break;
+
+    case videoFrameTypeInvalid:
+    // fallthrough
+    case videoFrameTypeSKIP:
+    // fallthrough
+    case videoFrameTypeIPMixed:
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_INVALID;
+        break;
     }
     out_frame->length = (uint32_t)sFbi.iFrameSizeInBytes;
     out_frame->pts = (uint32_t)sFbi.uiTimeStamp;
@@ -202,7 +221,7 @@ esp_h264_err_t esp_h264_enc_sw_new(const esp_h264_enc_cfg_sw_t *cfg, esp_h264_en
         goto __exit__;
     }
     if (sw_hd->pic_type != ESP_H264_RAW_FMT_I420) {
-        sw_hd->yuv_cache = (uint8_t *)esp_h264_calloc_prefer(1, cfg->res.height * cfg->res.width * 1.5, &actual_size, ESP_H264_MEM_SPIRAM, ESP_H264_MEM_INTERNAL);
+        sw_hd->yuv_cache = (uint8_t *)esp_h264_calloc_prefer(16, cfg->res.height * cfg->res.width * 1.5, &actual_size, ESP_H264_MEM_SPIRAM, ESP_H264_MEM_INTERNAL);
         ESP_H264_GOTO_ON_FALSE(sw_hd->yuv_cache, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for yuv cache");
         sw_hd->cc = yuyv2iyuv;
 #ifdef HAVE_ESP32S3
