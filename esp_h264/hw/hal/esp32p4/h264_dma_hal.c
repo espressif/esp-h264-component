@@ -1,11 +1,10 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "h264_dma_hal.h"
-#include "esp_log.h"
 
 void h264_dma_hal_init(h264_dma_hal_context_t *hal, h264_hal_dma_context_cfg_t *cfg)
 {
@@ -147,3 +146,18 @@ void h264_dma_hal_cfg_mvm_dsc(h264_dma_hal_context_t *hal, uint32_t dsc_addr)
 {
     h264_dma_ll_set_in_link_addr(&hal->dev->dma_in_ch[3], dsc_addr);
 }
+
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+
+/**
+ * @brief  Set the bytes per pixel
+ *
+ * @param  hal   DMA peripheral address
+ * @param  pbyte Bytes per pixel
+ */
+void h264_dma_hal_set_pbyte(h264_dma_hal_context_t *hal, h264_dma_pbyte_t pbyte)
+{
+    h264_dma_ll_set_pbyte(hal->dev, pbyte);
+}
+
+#endif

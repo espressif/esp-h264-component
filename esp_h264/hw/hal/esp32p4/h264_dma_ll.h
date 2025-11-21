@@ -1,11 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
 
+#include "h264_config.h"
 #include "h264_dma_struct.h"
 
 #ifdef __cplusplus
@@ -348,6 +349,28 @@ static inline void h264_dma_ll_set_in5_block(h264_dma_dev_t *dma, uint32_t buf, 
     dma->dma_in_ch5.conf3.block_length_12line = H264_DMA_DB_12_LINES_ROW_LENGTH;
     dma->dma_in_ch5.conf3.block_length_4line = H264_DMA_DB_4_LINES_ROW_LENGTH;
 }
+
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+
+/**
+ * @brief  Set the bytes per pixel
+ *
+ * @note  The pbyte is used to replace the original picture pixels.
+ *        0: 0.5byte/pix
+ *        1: 1byte/pix
+ *        2: 1.5byte/pix
+ *        3: 2byte/pix
+ *        4: 3byte/pix
+ *
+ * @param  dma   DMA peripheral address
+ * @param  pbyte Bytes per pixel
+ */
+static inline void h264_dma_ll_set_pbyte(h264_dma_dev_t *dma, uint8_t pbyte)
+{
+    dma->pbyte.ori_pbyte = pbyte;
+}
+
+#endif
 
 #ifdef __cplusplus
 }

@@ -10,13 +10,9 @@
 #include <string.h>
 #include "esp_h264_types.h"
 
-int read_enc_cb_420(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height);
+int read_enc_cb(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height, esp_h264_raw_format_t format);
 
 int write_enc_cb(esp_h264_enc_out_frame_t *frame);
-
-int read_enc_cb_i420(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height);
-
-int read_enc_cb_yuyv(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height);
 
 int read_dec_cd(uint8_t *inbuf, uint32_t inbuf_len, esp_h264_dec_in_frame_t *frame);
 

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,17 +14,38 @@
 extern "C" {
 #endif
 
-#define H264_INTR_DB_TMP_READY  (0x1 << 0)
-#define H264_INTR_REC_READY     (0x1 << 1)
-#define H264_INTR_FRAME_DONE    (0x1 << 2)
-#define H264_INTR_2MB_LINE_DONE (0x1 << 3)
-#define H264_INTR_MASK          (0xf)
-#define H264_SUP_MAX_CHANNEL    (2)
-#define H264_SCORE_LUMA         (6)
-#define H264_SCORE_CHROMA       (7)
-#define ESP_H264_QP_MAX         (51)
+#define H264_INTR_DB_TMP_READY    (0x1 << 0)
+#define H264_INTR_REC_READY       (0x1 << 1)
+#define H264_INTR_FRAME_DONE      (0x1 << 2)
+#define H264_INTR_2MB_LINE_DONE   (0x1 << 3)
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+#define H264_INTR_BS_BIT_OVERFLOW (0x1 << 4)
+#endif
+#define H264_INTR_MASK            (0xf)
+#define H264_SUP_MAX_CHANNEL      (2)
+#define H264_SCORE_LUMA           (6)
+#define H264_SCORE_CHROMA         (7)
+#define ESP_H264_QP_MAX           (51)
 
 typedef h264_ctrl_regs_t *esp_h264_set_dev_t;  /*<! The hardware h264 device configure handle */
+
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+
+/**
+ * @brief  Original picture color space
+ *
+ */
+typedef enum {
+    H264_ORI_COLOR_SPACE_RGB888  = 0,
+    H264_ORI_COLOR_SPACE_RGB565  = 1,
+    H264_ORI_COLOR_SPACE_YUV444  = 2,
+    H264_ORI_COLOR_SPACE_YUV422  = 3,
+    H264_ORI_COLOR_SPACE_YUV420  = 4,
+    H264_ORI_COLOR_SPACE_GRAY    = 5,
+    H264_ORI_COLOR_SPACE_INVALID = 6,
+} h264_ori_color_space_t;
+
+#endif
 
 /**
  * @brief  Context of the HAL
@@ -341,6 +362,8 @@ void h264_hal_set_roi_reg(esp_h264_set_dev_t device, bool ena, uint8_t x, uint8_
  */
 void h264_hal_get_roi_reg(esp_h264_set_dev_t device, uint8_t *x, uint8_t *y, uint8_t *xlen, uint8_t *ylen, int8_t *qp, uint8_t reg_idx);
 
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
+
 /**
  * @brief  Get bs error
  *
@@ -351,6 +374,25 @@ void h264_hal_get_roi_reg(esp_h264_set_dev_t device, uint8_t *x, uint8_t *y, uin
  *       - False  Encoder normal
  */
 bool h264_hal_get_bs_bit_overflow(h264_hal_context_t *hal);
+
+#else
+
+/**
+ * @brief  Set original picture color space
+ *
+ * @param  ctrl         Stream configure handle
+ * @param  color_space  Original picture color space
+ *                      0: RGB888
+ *                      1: RGB565
+ *                      2: YUV444
+ *                      3: YUV422
+ *                      4: YUV420
+ *                      5: GRAY
+ *                      6: Invalid
+ */
+void h264_hal_set_ori_color_space(volatile h264_ctrl_regs_t *ctrl, h264_ori_color_space_t color_space);
+
+#endif
 
 #ifdef __cplusplus
 }
