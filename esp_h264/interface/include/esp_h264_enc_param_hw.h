@@ -55,12 +55,12 @@ typedef struct {
  *
  */
 typedef struct {
-    uint8_t x;        /*<! Start position in horizontal direction. units macroblock size. Maxnium value is `mb_width`.*/
-    uint8_t y;        /*<! Start position in vertical direction. units macroblock size. Maxnium value is `mb_height`.*/
-    uint8_t len_x;    /*<! ROI length in horizontal direction. units macroblock size. Maxnium value is `mb_width`.
-                           And the sum `x` and `len_x` cann't gather than `mb_width`.*/
-    uint8_t len_y;    /*<! ROI length in vertical direction. units macroblock size. Maxnium value is `mb_height`.
-                           And the sum `y` and `len_y` cann't gather than `mb_height`.*/
+    uint8_t x;        /*<! Start position in horizontal direction. units macroblock size. Maximum value is `mb_width`*/
+    uint8_t y;        /*<! Start position in vertical direction. units macroblock size. Maximum value is `mb_height`*/
+    uint8_t len_x;    /*<! ROI length in horizontal direction. units macroblock size. Maximum value is `mb_width`
+                           And the sum `x` and `len_x` cannot be greater than `mb_width`.*/
+    uint8_t len_y;    /*<! ROI length in vertical direction. units macroblock size. Maximum value is `mb_height`
+                           And the sum `y` and `len_y` cannot be greater than `mb_height`*/
     int8_t  qp;       /*<! Fixed quantization parameter(QP) or delta QP
                            |-----------------------------|-------------------|----------------------------------|------------|
                            |  roi_mode                   |  ROI QP           |  NONE_ROI_QP                     |  `qp` range
@@ -72,7 +72,7 @@ typedef struct {
                            |  ESP_H264_ROI_MODE_FIX_QP   |  `qp`             |  none_roi_delta_qp +slice QP     |  [0, 51]   |
                            |-----------------------------|-------------------|----------------------------------|------------|
                            NOTE  slice QP is the slice QP. */
-    uint8_t reg_idx;  /*<! The index of ROI region. It's must less than 8. */
+    uint8_t reg_idx;  /*<! The index of ROI region. It must be less than 8 */
 } esp_h264_enc_roi_reg_t;
 
 /**
@@ -81,9 +81,9 @@ typedef struct {
 typedef enum {
     ESP_H264_MVM_MODE_DISABLE = -1,  /*<! The MV mode is disable */
     ESP_H264_MVM_MODE_P16X16  =  0,  /*<! The 16 * 16 macro block MV data collection*/
-    ESP_H264_MVM_MODE_MINV,          /*<! If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
+    ESP_H264_MVM_MODE_MINV,          /*<! If sub-macro-block exists, the MV data is minimum of sub-macro-block MV data.
                                           Otherwise it's result of 16 * 16 macro block MV data. */
-    ESP_H264_MVM_MODE_MAXV,          /*<! If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
+    ESP_H264_MVM_MODE_MAXV,          /*<! If sub-macro-block exists, the MV data is maximum of sub-macro-block MV data.
                                           Otherwise it's result of 16 * 16 macro block MV data. */
     ESP_H264_MVM_MODE_INVALID,       /*<! Invalid value*/
 } esp_h264_enc_mvm_mode_t;
@@ -93,7 +93,7 @@ typedef enum {
  */
 typedef enum {
     ESP_H264_MVM_FMT_ALL = 0,  /*<! Output all MV data except zero */
-    ESP_H264_MVM_FMT_PART,     /*<! Output horizontal or vertical direction MV data that is gather than or equal 4 */
+    ESP_H264_MVM_FMT_PART,     /*<! Output horizontal or vertical direction MV data that is greater than or equal 4 */
     ESP_H264_MVM_FMT_INVALID,  /*<! Invalid value */
 } esp_h264_enc_mvm_fmt_t;
 
@@ -106,15 +106,15 @@ typedef struct {
 } esp_h264_enc_mv_cfg_t;
 
 /**
- * @brief  Motion vector (MV) data for one marcoblock
- *         The position coordinates of the reference marcoblock with respect to the current marcoblock
+ * @brief  Motion vector (MV) data for one macroblock
+ *         The position coordinates of the reference macroblock with respect to the current macroblock
  */
 typedef union {
     struct {
-        int32_t  mv_y: 7;  /*<! Marcoblock MV in vertical direction  */
-        int32_t  mv_x: 8;  /*<! Marcoblock MV in horizontal direction */
-        uint32_t mb_y: 7;  /*<! Marcoblock position in vertical direction  */
-        uint32_t mb_x: 7;  /*<! Marcoblock position in horizontal direction  */
+        int32_t  mv_y: 7;  /*<! Macroblock MV in vertical direction  */
+        int32_t  mv_x: 8;  /*<! Macroblock MV in horizontal direction */
+        uint32_t mb_y: 7;  /*<! Macroblock position in vertical direction  */
+        uint32_t mb_x: 7;  /*<! Macroblock position in horizontal direction  */
         uint32_t rsv : 3;  /*<! Reserved */
     };
     uint32_t data;  /*<! MV data */

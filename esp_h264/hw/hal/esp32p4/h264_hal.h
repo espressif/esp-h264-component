@@ -202,13 +202,13 @@ void h264_hal_get_rc_bits_mad_qpsum(h264_hal_context_t *hal, uint32_t *enc_bits,
  * @param  device   Stream configure handle
  * @param  mv_mode  Motion vector(MV) mode
  *                  0: The 16 * 16 macro block MV data collection
- *                  1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
- *                     Otherwise it's result of 16 * 16 macro block MV data.
- *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
- *                     Otherwise it's result of 16 * 16 macro block MV data.
+ *                  1: If sub-macro-block exists, the MV data is minimum of sub-macro-block MV data
+ *                     Otherwise it's result of 16 * 16 macro block MV data
+ *                  2: If sub-macro-block exists, the MV data is maximum of sub-macro-block MV data
+ *                     Otherwise it's result of 16 * 16 macro block MV data
  * @param  mv_fmt   Motion vector(MV) format
- *                  0: Output all MV data expect zero
- *                  1: Output horizontal or vertical direction absolute of MV data gather than or equal 4
+ *                  0: Output all MV data except zero
+ *                  1: Output horizontal or vertical direction absolute of MV data greater than or equal 4
  */
 void h264_hal_set_mv_mode(esp_h264_set_dev_t device, int8_t mv_mode, uint8_t mv_fmt);
 
@@ -219,13 +219,13 @@ void h264_hal_set_mv_mode(esp_h264_set_dev_t device, int8_t mv_mode, uint8_t mv_
  * @param  mv_mode  Motion vector(MV) mode
  *                  -1: It is disable MV
  *                   0: The 16 * 16 macro block MV data collection
- *                   1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
- *                      Otherwise it's result of 16 * 16 macro block MV data.
- *                   2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
- *                      Otherwise it's result of 16 * 16 macro block MV data.
+ *                   1: If sub-macro-block exists, the MV data is minimum of sub-macro-block MV data
+ *                      Otherwise it's result of 16 * 16 macro block MV data
+ *                   2: If sub-macro-block exists, the MV data is maximum of sub-macro-block MV data
+ *                      Otherwise it's result of 16 * 16 macro block MV data
  * @param  mv_fmt   Motion vector(MV) format
- *                  0: Output all MV data expect zero
- *                  1: Output horizontal or vertical direction absolute of MV data gather than or equal 4
+ *                  0: Output all MV data except zero
+ *                  1: Output horizontal or vertical direction absolute of MV data greater than or equal 4
  */
 void h264_hal_get_mv_mode(esp_h264_set_dev_t device, int8_t *mv_mode, uint8_t *mv_fmt);
 
@@ -346,7 +346,7 @@ bool h264_hal_get_roi_mode(esp_h264_set_dev_t device, uint8_t *roi_mode, int8_t 
  *                 - -----------------------------------------------------------------------------
  *                            1                            qp                 slice QP + none_roi_delta_qp
  *                 - -----------------------------------------------------------------------------
- * @param  reg_idx  The index of ROI region. It's must less than 8.
+ * @param  reg_idx  The index of ROI region. It must be less than 8
  */
 void h264_hal_set_roi_reg(esp_h264_set_dev_t device, bool ena, uint8_t x, uint8_t y, uint8_t len_x, uint8_t len_y, int8_t qp, uint8_t reg_idx);
 

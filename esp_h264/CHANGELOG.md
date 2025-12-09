@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0~1
+
+### Fixes
+- Fixed spelling and grammar errors in documentation and code comments
+- Corrected hardware encoder resolution ranges (width: 80-1920, height: 80-2048)
+- Fixed PPS row description and P-frame description in feature table
+
 ## 1.2.0
 
 ### Features
@@ -62,4 +69,4 @@
 
 ## 1.0.0
 
-- Inititial version for esp_h264 component
+- Initial version for esp_h264 component

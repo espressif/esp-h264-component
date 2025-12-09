@@ -213,7 +213,7 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
         hw_hd->frame_num = 0;
     }
     esp_h264_cache_check_and_writeback(in_frame->raw_data.buffer, in_frame->raw_data.len);
-    /** In multi-thread, the parameter cann't be set in encoding.
+    /** In multi-thread, the parameter cannot be set in encoding.
      *  `mutex` is for thread safety.
     */
     esp_h264_mutex_t mutex;
