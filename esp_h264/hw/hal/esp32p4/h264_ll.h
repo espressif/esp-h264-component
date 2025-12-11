@@ -351,7 +351,7 @@ static inline void h264_ll_set_db_bypass(volatile h264_ctrl_regs_t *ctrl, bool e
  * @param  len_x    ROI region length in horizontal direction. units macroblock size
  * @param  len_y    ROI region length in vertical direction. units macroblock size
  * @param  qp       Quantization parameter(QP).
- * @param  reg_idx  The index of ROI region. It's must less than 8.
+ * @param  reg_idx  The index of ROI region. It must be less than 8.
  */
 static inline void h264_ll_set_roi_reg(volatile h264_ctrl_regs_t *ctrl, bool ena, uint8_t x, uint8_t y, uint8_t xlen, uint8_t ylen, int8_t qp, uint8_t reg_idx)
 {
@@ -392,7 +392,7 @@ static inline void h264_ll_set_roi_reg(volatile h264_ctrl_regs_t *ctrl, bool ena
  * @brief  Get range of interesting (ROI) region enable register
  *
  * @param  ctrl     Stream configure handle
- * @param  reg_idx  The index of ROI region. It's must less than 8.
+ * @param  reg_idx  The index of ROI region. It must be less than 8.
  *
  * @return
  *       - True   Enable
@@ -413,7 +413,7 @@ static inline bool h264_ll_get_roi_reg_en(volatile h264_ctrl_regs_t *ctrl, uint8
  * @param  len_x    ROI region length in horizontal direction. units macroblock size
  * @param  len_y    ROI region length in vertical direction. units macroblock size
  * @param  qp       Quantization parameter(QP)
- * @param  reg_idx  The index of ROI region. It's must less than 8.
+ * @param  reg_idx  The index of ROI region. It must be less than 8.
  */
 static inline void h264_ll_get_roi_reg(volatile h264_ctrl_regs_t *ctrl, uint8_t *x, uint8_t *y, uint8_t *xlen, uint8_t *ylen, int8_t *qp, uint8_t reg_idx)
 {
@@ -628,13 +628,13 @@ static inline bool h264_ll_get_mvm_en1(h264_dev_t *h264)
  * @param  h264     H.264 peripheral address
  * @param  mv_mode  Motion vector(MV) mode
  *                  0: The 16 * 16 macro block MV data collection
- *                  1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
+ *                  1: If sub-macro-block exists, the MV data is minimum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
- *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
+ *                  2: If sub-macro-block exists, the MV data is maximum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
  * @param  mv_fmt   Motion vector(MV) format
- *                  0: Output all MV data expect zero
- *                  1: Output horizontal or vertical direction absolute of MV data gather than or equal 4.
+ *                  0: Output all MV data except zero
+ *                  1: Output horizontal or vertical direction absolute of MV data greater than or equal 4.
  */
 static inline void h264_ll_set_mvm(h264_dev_t *h264, uint8_t mv_mode, uint8_t mv_fmt)
 {
@@ -648,13 +648,13 @@ static inline void h264_ll_set_mvm(h264_dev_t *h264, uint8_t mv_mode, uint8_t mv
  * @param  h264     H.264 peripheral address
  * @param  mv_mode  Motion vector(MV) mode
  *                  0: The 16 * 16 macro block MV data collection
- *                  1: If sub-macro-block is exist, the MV data is minimum of sub-macro-block MV data.
+ *                  1: If sub-macro-block exists, the MV data is minimum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
- *                  2: If sub-macro-block is exist, the MV data is maximum of sub-macro-block MV data.
+ *                  2: If sub-macro-block exists, the MV data is maximum of sub-macro-block MV data.
  *                     Otherwise it's result of 16 * 16 macro block MV data.
  * @param  mv_fmt   Motion vector(MV) format
- *                  0: Output all MV data expect zero
- *                  1: Output horizontal or vertical direction absolute of MV data gather than or equal 4
+ *                  0: Output all MV data except zero
+ *                  1: Output horizontal or vertical direction absolute of MV data greater than or equal 4
  */
 static inline void h264_ll_get_mvm(h264_dev_t *h264, uint8_t *mv_mode, uint8_t *mv_fmt)
 {

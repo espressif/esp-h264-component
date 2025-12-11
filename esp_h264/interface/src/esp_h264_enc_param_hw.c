@@ -29,7 +29,7 @@ esp_h264_err_t esp_h264_enc_hw_get_roi_cfg_info(esp_h264_enc_param_hw_handle_t h
 esp_h264_err_t esp_h264_enc_hw_set_roi_region(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_reg_t roi_reg)
 {
     ESP_H264_RET_ON_FALSE(handle, ESP_H264_ERR_ARG, TAG, "Invalid h264 parameter");
-    ESP_H264_RET_ON_FALSE(roi_reg.qp <= ESP_H264_QP_MAX, ESP_H264_ERR_ARG, TAG, "ROI region QP is gather than 51");
+    ESP_H264_RET_ON_FALSE(roi_reg.qp <= ESP_H264_QP_MAX, ESP_H264_ERR_ARG, TAG, "ROI region QP is greater than 51");
     ESP_H264_RET_ON_FALSE(handle->set_roi_reg, ESP_H264_ERR_UNSUPPORTED, TAG, "`set_roi_reg` is not supported yet");
     return handle->set_roi_reg(handle, roi_reg);
 }
@@ -45,8 +45,8 @@ esp_h264_err_t esp_h264_enc_hw_get_roi_region(esp_h264_enc_param_hw_handle_t han
 esp_h264_err_t esp_h264_enc_hw_cfg_mv(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mv_cfg_t cfg)
 {
     ESP_H264_RET_ON_FALSE(handle, ESP_H264_ERR_ARG, TAG, "Invalid h264 parameter");
-    ESP_H264_RET_ON_FALSE(cfg.mv_mode < ESP_H264_MVM_MODE_INVALID, ESP_H264_ERR_ARG, TAG, "The MV mode is gather than or equal ESP_H264_MVM_MODE_INVALID");
-    ESP_H264_RET_ON_FALSE(cfg.mv_fmt < ESP_H264_MVM_FMT_INVALID, ESP_H264_ERR_ARG, TAG, "The MV format is gather than or equal ESP_H264_MVM_FMT_INVALID");
+    ESP_H264_RET_ON_FALSE(cfg.mv_mode < ESP_H264_MVM_MODE_INVALID, ESP_H264_ERR_ARG, TAG, "The MV mode is greater than or equal ESP_H264_MVM_MODE_INVALID");
+    ESP_H264_RET_ON_FALSE(cfg.mv_fmt < ESP_H264_MVM_FMT_INVALID, ESP_H264_ERR_ARG, TAG, "The MV format is greater than or equal ESP_H264_MVM_FMT_INVALID");
     ESP_H264_RET_ON_FALSE(handle->cfg_mv, ESP_H264_ERR_UNSUPPORTED, TAG, "`cfg_mv` is not supported yet");
     return handle->cfg_mv(handle, cfg);
 }

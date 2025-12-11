@@ -2,7 +2,7 @@
 
 - [![Component Registry](https://components.espressif.com/components/espressif/esp_h264/badge.svg)](https://components.espressif.com/components/espressif/esp_h264)
 
-ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offering both hardware and software implementations. The hardware encoder (HW encoder) is designed specifically for the esp32p4 chip, achieving a frame rate greater than 30fps for 1080P resolution images. The software encoder (SW encoder) is sourced from v2.2.0 of [openh264](https://github.com/cisco/openh264), while the decoder is obtained from [tinyH264](https://github.com/udevbe/tinyh264). Both the software encoder and decoder are optimized for memory and CPU usage, ensuring optimal performance on Espressif chips.
+ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offering both hardware and software implementations. The hardware encoder (HW encoder) is designed specifically for the ESP32-P4 chip, achieving a frame rate greater than 30fps for 1080P resolution images. The software encoder (SW encoder) is sourced from v2.2.0 of [openh264](https://github.com/cisco/openh264), while the decoder is obtained from [tinyH264](https://github.com/udevbe/tinyh264). Both the software encoder and decoder are optimized for memory and CPU usage, ensuring optimal performance on Espressif chips.
 
 ## Term
 
@@ -14,11 +14,11 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | I-frame    | Intra frame             | Frames that can be encoded without reference to other frames.                           |
 | IDR-frame  | Instantaneous decoding  | Special I frame.                                                                        |
 |            | refresh frame           | Decoder can start decoding at this frame.                                               |
-| P-frame    | Predicted frame         | Frames that must be encoded decoded refering to other frames.                           |
+| P-frame    | Predicted frame         | Frames that must be decoded referring to other frames.                           |
 | GOP        | Group of picture        | The sum of one I-frame and number of pictures between two I frames.                     |
 |            |                         | GOP is usually set to the number of FPS output by the encoder.                          |
 | Resolution | Resolution              | It means the width and height of picture.                                               |
-| MB         | Marco block             | For picture luma, MB size is 16x16. And for picture chrominance,  MB size is 8x8.       |
+| MB         | Macro block             | For picture luma, MB size is 16x16. And for picture chrominance,  MB size is 8x8.       |
 |            |                         | `mb_width` = (`width` + 15) >> 4. `mb_height` = (`height` + 15) >> 4                    |
 | Slice      | Slice                   | Multiple macroblocks form a slice                                                       |
 | MV         | Motion vector           | The horizontal and vertical displacement of the current MB relative                     |
@@ -45,20 +45,20 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | Feature             | HW encoder                                                          | SW encoder                                  |
 | ------------------- | ------------------------------------------------------------------- | ------------------------------------------- |
 | profile             | Support baseline profile                                            | Support baseline profile                    |
-| width               | Supported range is 80 to 1088.                                      | Supported range is gather than or equal 16. |
-| height              | Supported range is 80 to 2048.                                      | Supported range is gather than or equal 16. |
+| width               | Supported range is 80 to 1920.                                      | Supported range is greater than or equal 16. |
+| height              | Supported range is 80 to 2032.                                      | Supported range is greater than or equal 16. |
 | QP                  | Supported all                                                       | Supported all                               |
 | FPS                 | Supported FPS range is 1 to 255.                                    | Supported FPS range is 1 to 255.            |
 | GOP                 | Supported GOP range is 1 to 255.                                    | Supported GOP range is 1 to 255.            |
 | SPS                 | Supported SPS is for all IDR-frame                                  | Supported SPS is for all IDR-frame          |
-| PPS                 | Supported SPS is for all IDR-frame                                  | Supported SPS is for all IDR-frame          |
+| PPS                 | Supported PPS is for all IDR-frame                                  | Supported PPS is for all IDR-frame          |
 | unencoded data type | Supported ESP_H264_RAW_FMT_O_UYY_E_VYY                              | Supported ESP_H264_RAW_FMT_YUYV             |
 |                     |                                                                     | Supported ESP_H264_RAW_FMT_I420             |
 | RC                  | Supported                                                           | Supported                                   |
 | de-blocking filter  | Supported                                                           | Supported                                   |
 | Single stream       | Supported                                                           | Supported                                   |
 | Dual stream         | Each stream supports different parameter configurations except GOP. | Un-supported                                |
-| ROI                 | Supported ROI region number isn't gahter than 8.                    | Un-supported                                |
+| ROI                 | Supported ROI region number is not greater than 8.                  | Un-supported                                |
 |                     | Each region supports fixed QP or delta QP.                          | Un-supported                                |
 |                     | Each none region supports delta QP.                                 | Un-supported                                |
 | MV                  | Supported output MV data                                            | Un-supported                                |
@@ -68,8 +68,8 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | Feature                                    | SW decoder                                               |
 | ------------------------------------------ | -------------------------------------------------------- |
 | profile                                    | Support constrained baseline profile                     |
-| width                                      | Supported range is gather than or equal 16.              |
-| height                                     | Supported range is gather than or equal 16.              |
+| width                                      | Supported range is greater than or equal 16.              |
+| height                                     | Supported range is greater than or equal 16.              |
 | slice group                                | Support 1 slice group                                    |
 | QP                                         | Supported all                                            |
 | FPS                                        | Supported                                                |
@@ -95,7 +95,7 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 
 #### DECODER
 
-Note: the memory consumption is strongly depenedent on the resolution of H264 stream and the encoded data.
+Note: the memory consumption is strongly dependent on the resolution of H264 stream and the encoded data.
 
 For the **mono task** decoder implementation, the performance is as follows:
 
@@ -119,9 +119,22 @@ For the **dual task** decoder implementation, the performance is as follows:
 | ----------- | ----------------------------- | ------------- | --------------------- |
 | 1920 * 1080 | ESP_H264_RAW_FMT_O_UYY_E_VYY  | 140k          | 30                    |
 
+Approximately:
+
+The frame rate for a given resolution can be estimated as:
+fps_cur ≈ fps_1080p × (current_resolution_pixels × bytes_per_pixel) ÷ (1920 × 1080 × bytes_per_pixel_1080p)
+
+Where:
+- fps_cur is the approximate frame rate for the current resolution
+- fps_1080p is the frame rate for 1080p resolution
+- current_resolution_pixels is the total number of pixels for the current resolution
+- bytes_per_pixel is the number of bytes per pixel for the current resolution
+- 1920 × 1080 is the number of pixels for 1080p resolution
+- bytes_per_pixel_1080p is the number of bytes per pixel for 1080p
+
 #### DECODER
 
-Note: the memory consumption is strongly depenedent on the resolution of H264 stream and the encoded data.
+Note: the memory consumption is strongly dependent on the resolution of H264 stream and the encoded data.
 
 For the **mono task** decoder implementation, the performance is as follows:
 
@@ -162,4 +175,4 @@ Please refer to the files test_apps/esp_h264\_\*\_test.c and test_apps/esp_h264\
    ```
 - Lower resolution if possible (e.g., 640x480 instead of 1280x720)
 - Ensure adequate memory allocation
-- Check if the input H.264 stream uses supported profile (constrained baseline)
+- Check if the input H.264 stream uses the supported profile (constrained baseline)

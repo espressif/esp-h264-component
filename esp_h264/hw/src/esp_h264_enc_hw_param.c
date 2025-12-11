@@ -177,8 +177,8 @@ static esp_h264_err_t set_roi_reg(esp_h264_enc_param_hw_handle_t handle, esp_h26
     ESP_H264_RET_ON_FALSE(roi_reg.reg_idx < ESP_H264_ROI_SUP_NUM, ESP_H264_ERR_ARG, TAG, "Invalid `reg_idx` parameter");
     int16_t x_size = roi_reg.len_x + roi_reg.x;
     int16_t y_size = roi_reg.len_y + roi_reg.y;
-    ESP_H264_RET_ON_FALSE(x_size <= param->mb_width, ESP_H264_ERR_ARG, TAG, "The sum of `len_x` and `x` is gather than `mb_width` ");
-    ESP_H264_RET_ON_FALSE(y_size <= param->mb_height, ESP_H264_ERR_ARG, TAG, "The sum of `len_y` and `y` is gather than `mb_height` ");
+    ESP_H264_RET_ON_FALSE(x_size <= param->mb_width, ESP_H264_ERR_ARG, TAG, "The sum of `len_x` and `x` is greater than `mb_width` ");
+    ESP_H264_RET_ON_FALSE(y_size <= param->mb_height, ESP_H264_ERR_ARG, TAG, "The sum of `len_y` and `y` is greater than `mb_height` ");
     uint8_t roi_mode = 0;
     int8_t none_roi_delta_qp = 0;
     /* Check ROI function enable*/

@@ -48,9 +48,9 @@ esp_h264_err_t esp_h264_enc_get_resolution(esp_h264_enc_param_handle_t handle, e
  * @brief  This function sets the frames per second (FPS) parameter for the H.264 encoder
  *
  * @note  The higher FPS, the more coherent and realistic the video.
- *        When FPS is gather than 24, the general video seems coherent.
- *        When FPS is gather than 30, the game video seems coherent.
- *        When FPS is gather than 75, increase FPS, the video fluency improve isn't obvious.
+ *        When FPS is greater than 24, the general video seems coherent.
+ *        When FPS is greater than 30, the game video seems coherent.
+ *        When FPS is greater than 75, increase FPS, the video fluency improvement isn't obvious.
  *        Ensure the `fps` value is within the range of 1 to 255.
  *        This function may return ESP_H264_ERR_ARG if `fps` value is out of range.
  *
