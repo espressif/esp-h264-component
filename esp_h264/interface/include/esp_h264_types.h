@@ -39,7 +39,7 @@ typedef enum {
  *        |-------------------------------|--------------|--------------|--------------|
  *        | ESP_H264_RAW_FMT_BGR888       |  un-supported|  supported   | un-supported |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_BGR565_BE    |  un-supported|  supported   | un-supported |
+ *        | ESP_H264_RAW_FMT_RGB565_LE    |  un-supported|  supported   | un-supported |
  *        |-------------------------------|--------------|--------------|--------------|
  *        | ESP_H264_RAW_FMT_VUY          |  un-supported|  supported   | un-supported |
  *        |-------------------------------|--------------|--------------|--------------|
@@ -54,7 +54,7 @@ typedef enum {
  */
 typedef enum {
     ESP_H264_RAW_FMT_BGR888      = ESP_H264_4CC('B', 'G', 'R', '3'),  /*<! BGR888 */
-    ESP_H264_RAW_FMT_BGR565_BE   = ESP_H264_4CC('B', 'G', 'R', 'B'),  /*<! RGB565 big endian */
+    ESP_H264_RAW_FMT_RGB565_LE   = ESP_H264_4CC('R', 'G', 'B', 'L'),  /*<! RGB565 little endian */
     ESP_H264_RAW_FMT_VUY         = ESP_H264_4CC('Y', '3', '0', '8'),  /*<! VUY */
     ESP_H264_RAW_FMT_UYVY        = ESP_H264_4CC('U', 'Y', 'V', 'Y'),  /*<! UYVY */
     ESP_H264_RAW_FMT_YUYV        = ESP_H264_4CC('Y', 'U', 'Y', 'V'),  /*<! The storage format is YUV422 packet. The data order is Y U Y V... for per line */
@@ -246,7 +246,7 @@ typedef struct {
  */
 #define ESP_H264_GET_BPP_BY_PIC_TYPE(pic_type) \
     ((pic_type) == ESP_H264_RAW_FMT_I420 || (pic_type) == ESP_H264_RAW_FMT_O_UYY_E_VYY ? 1.5f : \
-     (pic_type) == ESP_H264_RAW_FMT_BGR565_BE || (pic_type) == ESP_H264_RAW_FMT_UYVY || (pic_type) == ESP_H264_RAW_FMT_YUYV ? 2.0f : \
+     (pic_type) == ESP_H264_RAW_FMT_RGB565_LE || (pic_type) == ESP_H264_RAW_FMT_UYVY || (pic_type) == ESP_H264_RAW_FMT_YUYV ? 2.0f : \
      3.0f)
 
 #if !defined(CONFIG_ESP_REV_MIN_FULL) || CONFIG_ESP_REV_MIN_FULL < 300
@@ -267,7 +267,7 @@ typedef struct {
  * @note   HW Version 1/2 supports multiple formats including:
  *         - ESP_H264_RAW_FMT_GREY (Grayscale)
  *         - ESP_H264_RAW_FMT_BGR888 (24-bit RGB)
- *         - ESP_H264_RAW_FMT_BGR565_BE (16-bit RGB Big-Endian)
+ *         - ESP_H264_RAW_FMT_RGB565_LE (16-bit RGB Little-Endian)
  *         - ESP_H264_RAW_FMT_VUY (YUV 4:4:4)
  *         - ESP_H264_RAW_FMT_UYVY (YUV 4:2:2)
  *         - ESP_H264_RAW_FMT_O_UYY_E_VYY (Optimized YUV 4:2:0)
@@ -276,7 +276,7 @@ typedef struct {
  */
 #define ESP_H264_HW_IS_SUPPORTED_PIC_TYPE(pic_type) \
     ((pic_type) == ESP_H264_RAW_FMT_BGR888 || \
-     (pic_type) == ESP_H264_RAW_FMT_BGR565_BE || \
+     (pic_type) == ESP_H264_RAW_FMT_RGB565_LE || \
      (pic_type) == ESP_H264_RAW_FMT_VUY || \
      (pic_type) == ESP_H264_RAW_FMT_UYVY || \
      (pic_type) == ESP_H264_RAW_FMT_O_UYY_E_VYY)

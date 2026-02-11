@@ -71,7 +71,7 @@ TEST_CASE("hw_enc_single_hw_enc_pic_type_test", "[esp_h264]")
 {
     esp_h264_raw_format_t pic_type_list[] = {
         ESP_H264_RAW_FMT_BGR888,
-        ESP_H264_RAW_FMT_BGR565_BE,
+        ESP_H264_RAW_FMT_RGB565_LE,
         ESP_H264_RAW_FMT_VUY,
         ESP_H264_RAW_FMT_UYVY,
         ESP_H264_RAW_FMT_O_UYY_E_VYY,
@@ -172,7 +172,7 @@ TEST_CASE("hw_enc_dual_hw_enc_pic_type_test", "[esp_h264]")
 {
     esp_h264_raw_format_t pic_type_list[] = {
         ESP_H264_RAW_FMT_BGR888,
-        ESP_H264_RAW_FMT_BGR565_BE,
+        ESP_H264_RAW_FMT_RGB565_LE,
         ESP_H264_RAW_FMT_VUY,
         ESP_H264_RAW_FMT_UYVY,
         ESP_H264_RAW_FMT_O_UYY_E_VYY,

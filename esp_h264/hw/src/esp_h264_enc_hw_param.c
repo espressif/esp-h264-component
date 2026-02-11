@@ -51,7 +51,7 @@ static h264_dma_pbyte_t esp_h264_get_pbyte_by_pic_type(esp_h264_raw_format_t pic
     switch (pic_type) {
     case ESP_H264_RAW_FMT_O_UYY_E_VYY:
         return H264_DMA_PBYTE_1_5;
-    case ESP_H264_RAW_FMT_BGR565_BE:
+    case ESP_H264_RAW_FMT_RGB565_LE:
     case ESP_H264_RAW_FMT_UYVY:
         return H264_DMA_PBYTE_2;
     case ESP_H264_RAW_FMT_VUY:
@@ -66,7 +66,7 @@ static h264_ori_color_space_t esp_h264_get_color_space_by_pic_type(esp_h264_raw_
     switch (pic_type) {
     case ESP_H264_RAW_FMT_BGR888:
         return H264_ORI_COLOR_SPACE_RGB888;
-    case ESP_H264_RAW_FMT_BGR565_BE:
+    case ESP_H264_RAW_FMT_RGB565_LE:
         return H264_ORI_COLOR_SPACE_RGB565;
     case ESP_H264_RAW_FMT_VUY:
         return H264_ORI_COLOR_SPACE_YUV444;

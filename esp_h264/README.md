@@ -52,8 +52,8 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | GOP                 | Supported GOP range is 1 to 255.                                    | Supported GOP range is 1 to 255.            |
 | SPS                 | Supported SPS is for all IDR-frame                                  | Supported SPS is for all IDR-frame          |
 | PPS                 | Supported PPS is for all IDR-frame                                  | Supported PPS is for all IDR-frame          |
-| unencoded data type | Supported ESP_H264_RAW_FMT_O_UYY_E_VYY                              | Supported ESP_H264_RAW_FMT_YUYV             |
-|                     |                                                                     | Supported ESP_H264_RAW_FMT_I420             |
+| unencoded data type | Supported ESP_H264_RAW_FMT_O_UYY_E_VYY/VUY/UYVY                     | Supported ESP_H264_RAW_FMT_YUYV             |
+|                     | Supported ESP_H264_RAW_FMT_BGR888/RGB565_LE                         | Supported ESP_H264_RAW_FMT_I420             |
 | RC                  | Supported                                                           | Supported                                   |
 | de-blocking filter  | Supported                                                           | Supported                                   |
 | Single stream       | Supported                                                           | Supported                                   |
