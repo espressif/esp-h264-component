@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+### Fixes
+- Corrected pixel format name from BGR565_BE to RGB565_LE in documentation comments and in the public enum/type definition (naming aligned with actual byte order)
+
 ## 1.2.0~1
 
 ### Fixes

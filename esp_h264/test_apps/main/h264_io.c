@@ -6,9 +6,10 @@
 #include "h264_io.h"
 
 #define CLAMP(x) ((x) < 0 ? 0 : ((x) > 255 ? 255 : (x)))
-#define set_bgr565_be(r, g, b, rgb) {                       \
-    (rgb)[0] = ((b) & (uint32_t)0xf8) | ((g) >> 5);         \
-    (rgb)[1] = (((g) & (uint32_t)0x1c) << 3) | ((r) >> 3);  \
+static inline void set_rgb565_le(uint8_t r, uint8_t g, uint8_t b, uint8_t *rgb)
+{
+    rgb[1] = (r & 0xf8) | (g >> 5);
+    rgb[0] = ((g & 0x1c) << 3) | (b >> 3);
 }
 
 static void yuv_to_rgb(uint8_t y, uint8_t u, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
@@ -177,14 +178,14 @@ static int read_enc_cb_bgr888(esp_h264_enc_in_frame_t *frame, int16_t width, int
     uint8_t *rgb = frame->raw_data.buffer;
     for (int j = 0; j < height; j ++) {
         for (int i = 0; i < width; i ++) {
-            yuv_to_rgb(y, u, v, rgb + 0, rgb + 1, rgb + 2);
+            yuv_to_rgb(y, u, v, rgb + 2, rgb + 1, rgb + 0);
             rgb += 3;
         }
     }
     return 1;
 }
 
-static int read_enc_cb_bgr565_be(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height)
+static int read_enc_cb_rgb565_le(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height)
 {
     index_c++;
     if (index_c > COLOR_NUM) {
@@ -200,7 +201,7 @@ static int read_enc_cb_bgr565_be(esp_h264_enc_in_frame_t *frame, int16_t width, 
         for (int i = 0; i < width; i ++) {
             uint8_t r, g, b;
             yuv_to_rgb(y, u, v, &r, &g, &b);
-            set_bgr565_be(r, g, b, rgb);
+            set_rgb565_le(r, g, b, rgb);
             rgb += 2;
         }
     }
@@ -303,8 +304,8 @@ int read_enc_cb(esp_h264_enc_in_frame_t *frame, int16_t width, int16_t height, e
     //     return read_enc_cb_grey(frame, width, height);
     case ESP_H264_RAW_FMT_BGR888:
         return read_enc_cb_bgr888(frame, width, height);
-    case ESP_H264_RAW_FMT_BGR565_BE:
-        return read_enc_cb_bgr565_be(frame, width, height);
+    case ESP_H264_RAW_FMT_RGB565_LE:
+        return read_enc_cb_rgb565_le(frame, width, height);
     case ESP_H264_RAW_FMT_VUY:
         return read_enc_cb_vuy(frame, width, height);
     case ESP_H264_RAW_FMT_UYVY:
