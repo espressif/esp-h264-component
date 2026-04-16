@@ -50,11 +50,17 @@ list(APPEND src_dirs "./sw/src/asm/${IDF_TARGET}")
 
 ENDIF ()
 
+set(private_requires esp_hw_support efuse)
+IF ("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_LESS "6.0")
+    list(APPEND private_requires bootloader_support)
+ENDIF ()
+
 idf_component_register(SRC_DIRS "${src_dirs}"
                        EXCLUDE_SRCS "${exclude_srcs}"
                        INCLUDE_DIRS "${public_include_dirs}"
                        PRIV_INCLUDE_DIRS "${private_include_dirs}"
                        REQUIRES "${public_requires}"
+                       PRIV_REQUIRES "${private_requires}"
                        LDFRAGMENTS "linker.lf")
 
 add_prebuilt_library(tinyh264 "${CMAKE_CURRENT_LIST_DIR}/sw/libs/${CONFIG_IDF_TARGET}/libtinyh264.a"

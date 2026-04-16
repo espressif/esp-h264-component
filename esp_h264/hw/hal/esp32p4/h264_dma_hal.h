@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,6 +14,8 @@ extern "C" {
 
 #define H264_DMA_OUT_CONF0_EOF_EN     (1 << 1)
 #define H264_DMA_OUT_CONF0_REORDER_EN (1 << 16)
+#define H264_DMA_OUT_CONF0_ECC_AES_EN (1U << 3)
+#define H264_DMA_IN_CONF0_ECC_AES_EN  (1U << 3)
 #define H264_DMA_OUT_MAX_CH_NUM       (5)
 #define H264_DMA_IN_MAX_CH_NUM        (6)
 #define H264_DMA_BURST_SIZE           (4)
