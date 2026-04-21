@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -319,5 +319,29 @@ uint16_t esp_h264_enc_hw_set_slice(uint8_t *buffer, uint32_t len, bool is_iframe
         }
     }
     uint16_t nal_size = nal_bs_size(&bs) + 32;
+    /*
+     * Flash encryption on, 16-byte phase: when the byte offset implied by (nal_size >> 3) has
+     * (offset % 16) >= 8, prepend an AUD (NAL type 9) before the slice RBSP (starts at buffer+4
+     * after the slice start-code word) so CABAC/DMA sees an 8-byte shifted layout. nal_size += 64
+     * is eight extra bytes in bits, same length accounting style as the +32 reserve elsewhere.
+     */
+#if SOC_PSRAM_DMA_CAPABLE || SOC_DMA_CAN_ACCESS_FLASH
+    if (ESP_H264_IS_FLASH_ENCRYPTION_ENABLED()) {
+        int32_t nal_bytes = nal_size >> 3;
+        uint32_t buffer_copy = (uint32_t)(buffer + nal_bytes);
+        buffer_copy &= 0xf;
+        if (buffer_copy >= 0x8) {
+            static const uint8_t aud_nalu_8B[] = {
+                0x09,                    /* nal header (AUD) */
+                0xF0,                    /* primary_pic_type + RBSP trailing */
+                0x00, 0x00,              /* padding */
+                0x00, 0x00, 0x00, 0x01,  /* start code for next NAL (slice) */
+            };
+            memcpy(buffer + 12, buffer + 4, nal_bytes + 1);
+            memcpy(buffer + 4, aud_nalu_8B, 8);
+            nal_size += 64;
+        }
+    }
+#endif
     return nal_size;
 }

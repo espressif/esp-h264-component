@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "esp_h264_efuse.h"
 #include "esp_h264_alloc.h"
 #include "esp_h264_enc_single_hw.h"
 #include "esp_h264_enc_hw_param.h"
@@ -322,6 +323,16 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
     for (uint8_t i = 1; i < H264_DMA_OUT_MAX_CH_NUM; i++) {
         cfg_h264_dma_hal.out_ch_conf0[i] = H264_DMA_OUT_CONF0_EOF_EN;
     }
+#if SOC_PSRAM_DMA_CAPABLE || SOC_DMA_CAN_ACCESS_FLASH
+    if (ESP_H264_IS_FLASH_ENCRYPTION_ENABLED()) {
+        for (uint8_t i = 0; i < H264_DMA_OUT_MAX_CH_NUM; i++) {
+            cfg_h264_dma_hal.out_ch_conf0[i] |= H264_DMA_OUT_CONF0_ECC_AES_EN;
+        }
+        for (uint8_t i = 0; i < H264_DMA_IN_MAX_CH_NUM; i++) {
+            cfg_h264_dma_hal.in_ch_conf0[i] |= H264_DMA_IN_CONF0_ECC_AES_EN;
+        }
+    }
+#endif
     uint8_t mb_width = (cfg->res.width + 15) >> 4;
     uint8_t mb_height = (cfg->res.height + 15) >> 4;
     esp_h264_enc_hw_param_cfg_t param_cfg = {

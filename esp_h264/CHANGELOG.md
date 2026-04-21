@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.5
+
+### Fixes
+- Fixed hardware encoder (P4) encoding failure when flash encryption is enabled and accessing PSRAM
+
 ## 1.3.0
 
 ### Fixes
