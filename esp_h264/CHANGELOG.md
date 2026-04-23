@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.5~1
+- Fixed missing headers inclusion in h264_nal.c
+
 ## 1.3.5
 
 ### Fixes
