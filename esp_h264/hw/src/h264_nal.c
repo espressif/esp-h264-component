@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <string.h>
+#include "soc/soc_caps.h"
+#include "esp_h264_efuse.h"
 #include "h264_nal.h"
 
 #define LOG_MAX_FRAME_NUM 8
