@@ -10,7 +10,7 @@
 
 #define ESP_H264_MEM_INTERNAL MALLOC_CAP_INTERNAL
 #define ESP_H264_MEM_SPIRAM   MALLOC_CAP_SPIRAM
-#define ALIGN_UP(num, align)    (((num) + ((align) - 1)) & ~((align) - 1))
+#define ALIGN_UP(num, align)  ((align) ? (((num) + ((align) - 1)) & ~((align) - 1)) : (num))
 
 /**
  * @brief  Free memory previously allocated

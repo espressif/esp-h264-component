@@ -33,7 +33,7 @@
     IDF_CI_BUILD: "1"
   script:
     - pip install --upgrade idf-component-manager
-    - pip install idf_build_apps==1.1.4
+    - pip install idf_build_apps
     - export PEDANTIC_FLAGS="-DIDF_CI_BUILD -Werror -Werror=deprecated-declarations -Werror=unused-variable -Werror=unused-but-set-variable -Werror=unused-function"
     - export EXTRA_CFLAGS="${PEDANTIC_FLAGS} -Wstrict-prototypes"
     - export EXTRA_CXXFLAGS="${PEDANTIC_FLAGS}"
@@ -45,5 +45,6 @@ build_test:
     - .rules:build:test_apps
   parallel:
     matrix:
-      # Due to limitation of esp_sccb_intf, now only IDF v5.3 is built
+      # Build against the lowest supported IDF release and the master branch
       - IMAGE: espressif/idf:release-v5.3
+      - IMAGE: espressif/idf:latest
