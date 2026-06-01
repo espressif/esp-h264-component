@@ -32,19 +32,31 @@
   variables:
     IDF_CI_BUILD: "1"
   script:
-    - pip install --upgrade idf-component-manager
-    - pip install idf_build_apps
+    - echo "MODIFIED_FILES $MODIFIED_FILES"
+    - pip install idf_build_apps==$IDF_BUILD_APPS_VERSION
     - export PEDANTIC_FLAGS="-DIDF_CI_BUILD -Werror -Werror=deprecated-declarations -Werror=unused-variable -Werror=unused-but-set-variable -Werror=unused-function"
     - export EXTRA_CFLAGS="${PEDANTIC_FLAGS} -Wstrict-prototypes"
     - export EXTRA_CXXFLAGS="${PEDANTIC_FLAGS}"
     - python tools/ci/build_apps.py
 
-build_test:
+# ESP32-P4 v3.1+ (ECO5) CI boards require IDF >= 5.5 (v3.x chip revision support).
+# Targets: esp32s3 + esp32p4
+build_test_v55:
   extends:
     - .build_examples_template
     - .rules:build:test_apps
-  parallel:
-    matrix:
-      # Build against the lowest supported IDF release and the master branch
-      - IMAGE: espressif/idf:release-v5.3
-      - IMAGE: espressif/idf:latest
+  variables:
+    IMAGE: espressif/idf:release-v5.5
+    IDF_BUILD_APPS_VERSION: "1.1.4"
+    EXTRA_PREVIEW_TARGETS: ""
+
+# IDF master: adds esp32s31 support.
+# Targets: esp32s3 + esp32s31 + esp32p4
+build_test_master:
+  extends:
+    - .build_examples_template
+    - .rules:build:test_apps
+  variables:
+    IMAGE: espressif/idf:latest
+    IDF_BUILD_APPS_VERSION: "1.1.4"
+    EXTRA_PREVIEW_TARGETS: "esp32s31"

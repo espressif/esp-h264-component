@@ -1,0 +1,98 @@
+.target_test_template:
+  stage: target_test
+  image: "$CI_DOCKER_REGISTRY/target-test-env-v5.3:1"
+  interruptible: true
+  timeout: 1 hour
+  retry: 2
+  before_script:
+    - source ${CI_PROJECT_DIR}/tools/ci/utils.sh
+    - add_gitlab_ssh_keys
+  cache:
+    # Usually do not need submodule-cache in target_test
+    - key: pip-cache
+      paths:
+        - .cache/pip
+      policy: pull
+
+.target_test_apps_template:
+  extends:
+    - .target_test_template
+  variables:
+    GIT_DEPTH: 1
+    SUBMODULES_TO_FETCH: "none"
+    TEST_DIR: "esp_h264/test_apps"
+    LOG_PATH: "$CI_PROJECT_DIR/TEST_LOGS"
+  artifacts:
+    when: always
+    paths:
+      - XUNIT_RESULT.xml
+      - "**/*.log"
+      - $LOG_PATH
+    reports:
+      junit: XUNIT_RESULT.xml
+    expire_in: 1 week
+
+.pytest_template:
+  extends:
+    - .target_test_apps_template
+    - .rules:build:test_apps
+  script:
+    - set -eo pipefail
+    - pip install --upgrade pytest pytest-embedded pytest-embedded-idf pytest-embedded-serial-esp pytest-rerunfailures pytest-timeout idf_build_apps
+    - ls -la "${TEST_DIR}"/build_*/config/sdkconfig.json "${TEST_DIR}"/build_*/*.bin 2>/dev/null || ls -la "${TEST_DIR}"/build_*/ || true
+    - pytest "${TEST_DIR}" --target ${IDF_TARGET} -m "${IDF_TARGET}" --junitxml=XUNIT_RESULT.xml --parallel-count 1 --parallel-index 1
+
+# ── IDF release-v5.5 jobs: esp32s3 + esp32p4 ──────────────────────────────
+test_v55_esp32s3:
+  extends:
+    - .pytest_template
+  needs:
+    - job: build_test_v55
+      artifacts: true
+  variables:
+    IDF_TARGET: esp32s3
+  tags: [ esp32s3 ]
+
+test_v55_esp32p4:
+  extends:
+    - .pytest_template
+  image: "$CI_DOCKER_REGISTRY_1/ci/images/idf-v6.1-target-test:1"
+  needs:
+    - job: build_test_v55
+      artifacts: true
+  variables:
+    IDF_TARGET: esp32p4
+  tags: [ esp32p4 ]
+
+# ── IDF latest (master) jobs: esp32s3 + esp32s31 + esp32p4 ────────────────
+test_master_esp32s3:
+  extends:
+    - .pytest_template
+  needs:
+    - job: build_test_master
+      artifacts: true
+  variables:
+    IDF_TARGET: esp32s3
+  tags: [ esp32s3 ]
+
+test_master_esp32s31:
+  extends:
+    - .pytest_template
+  image: "$CI_DOCKER_REGISTRY_1/ci/images/idf-v6.1-target-test:1"
+  needs:
+    - job: build_test_master
+      artifacts: true
+  variables:
+    IDF_TARGET: esp32s31
+  tags: [ esp32s31 ]
+
+test_master_esp32p4:
+  extends:
+    - .pytest_template
+  image: "$CI_DOCKER_REGISTRY_1/ci/images/idf-v6.1-target-test:1"
+  needs:
+    - job: build_test_master
+      artifacts: true
+  variables:
+    IDF_TARGET: esp32p4
+  tags: [ esp32p4 ]
