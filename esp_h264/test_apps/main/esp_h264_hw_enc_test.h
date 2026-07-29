@@ -52,6 +52,35 @@ esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg);
 esp_h264_err_t dual_hw_enc_process(esp_h264_enc_cfg_dual_hw_t cfg);
 
 /**
+ * @brief Measure single HW encoder `esp_h264_enc_hw_new` and `esp_h264_enc_open` latency
+ *
+ * Runs multiple new/open/close/del rounds and prints avg/min/max in microseconds.
+ * Large ref/db buffers are allocated in `new`, so both stages are reported.
+ *
+ * @param  cfg  The configuration of single hardware encoder
+ *
+ * @return
+ *       - ESP_H264_ERR_OK   Succeeded
+ *       - ESP_H264_ERR_ARG  Invalid arguments passed
+ *       - ESP_H264_ERR_MEM  Insufficient memory
+ *       - ESP_H264_ERR_FAIL Failed
+ */
+esp_h264_err_t single_hw_enc_open_time_test(esp_h264_enc_cfg_hw_t cfg);
+
+/**
+ * @brief Measure dual HW encoder `esp_h264_enc_dual_hw_new` and `esp_h264_enc_dual_open` latency
+ *
+ * @param  cfg  The configuration of dual hardware encoder
+ *
+ * @return
+ *       - ESP_H264_ERR_OK   Succeeded
+ *       - ESP_H264_ERR_ARG  Invalid arguments passed
+ *       - ESP_H264_ERR_MEM  Insufficient memory
+ *       - ESP_H264_ERR_FAIL Failed
+ */
+esp_h264_err_t dual_hw_enc_open_time_test(esp_h264_enc_cfg_dual_hw_t cfg);
+
+/**
  * @brief Single hardware oneencoding. And this case add set/get base paramter function test than `single_hw_enc_process` in one thread.
  *        The set/get paramter function can be call in one thread or asynchronous thread.
  *

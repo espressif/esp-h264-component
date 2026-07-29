@@ -20,6 +20,7 @@ set(priv_requires
         # general
         unity
         esp_psram
+        esp_timer
 )
 
 idf_component_register(SRCS ${srcs}
