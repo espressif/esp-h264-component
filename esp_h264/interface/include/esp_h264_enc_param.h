@@ -28,6 +28,7 @@ typedef struct esp_h264_enc_param_if {
     esp_h264_err_t (*get_gop)(esp_h264_enc_param_handle_t handle, uint8_t *gop);                /*<! Get group of picture(GOP) function */
     esp_h264_err_t (*set_bitrate)(esp_h264_enc_param_handle_t handle, uint32_t bitrate);        /*<! Set bitrate function */
     esp_h264_err_t (*get_bitrate)(esp_h264_enc_param_handle_t handle, uint32_t *bitrate);       /*<! Get bitrate function */
+    esp_h264_err_t (*force_idr)(esp_h264_enc_param_handle_t handle);                           /*<! Force next frame to be IDR */
 } esp_h264_enc_param_t;
 
 /**
@@ -145,6 +146,26 @@ esp_h264_err_t esp_h264_enc_get_bitrate(esp_h264_enc_param_handle_t handle, uint
  *       - ESP_H264_ERR_ARG          Invalid arguments passed
  */
 esp_h264_err_t esp_h264_enc_get_bpp(esp_h264_enc_param_handle_t handle, float *out_bpp);
+
+/**
+ * @brief  Force the next encoded frame to be an IDR frame
+ *
+ * @note  Currently supported by the HW encoder only. The SW encoder returns
+ *        `ESP_H264_ERR_UNSUPPORTED`.
+ *        Does not change the configured GOP value. The request is consumed on the next
+ *        `esp_h264_enc_process` / `esp_h264_enc_dual_process`.
+ *        For HW encoder, SPS/PPS are prepended as for a normal IDR.
+ *        For dual HW encoder, either stream's param handle may be used;
+ *        both streams will encode IDR together.
+ *
+ * @param[in]  handle  It is a pointer to the H.264 encoding parameters structure
+ *
+ * @return
+ *       - ESP_H264_ERR_OK           Succeeded
+ *       - ESP_H264_ERR_ARG          Invalid arguments passed
+ *       - ESP_H264_ERR_UNSUPPORTED  Force IDR is not supported by the encoder (e.g. SW)
+ */
+esp_h264_err_t esp_h264_enc_force_idr(esp_h264_enc_param_handle_t handle);
 
 #ifdef __cplusplus
 }

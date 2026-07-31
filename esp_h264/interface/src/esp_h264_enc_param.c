@@ -63,3 +63,10 @@ esp_h264_err_t esp_h264_enc_get_bitrate(esp_h264_enc_param_handle_t handle, uint
     ESP_H264_RET_ON_FALSE(handle->get_bitrate, ESP_H264_ERR_UNSUPPORTED, TAG, "`get_bitrate` is not supported yet");
     return handle->get_bitrate(handle, out_bitrate);
 }
+
+esp_h264_err_t esp_h264_enc_force_idr(esp_h264_enc_param_handle_t handle)
+{
+    ESP_H264_RET_ON_FALSE(handle, ESP_H264_ERR_ARG, TAG, "Invalid h264 parameter");
+    ESP_H264_RET_ON_FALSE(handle->force_idr, ESP_H264_ERR_UNSUPPORTED, TAG, "`force_idr` is not supported yet");
+    return handle->force_idr(handle);
+}
