@@ -22,7 +22,7 @@ typedef struct esp_h264_rc {
     float    mad_frame_pred;
     uint16_t mb_cnt;
     int32_t  ebits;
-    int32_t  err_sum;
+    float    err_sum;
     uint8_t  frame_num;
 } esp_h264_rc_t;
 
