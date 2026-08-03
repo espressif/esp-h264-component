@@ -22,6 +22,7 @@ typedef struct esp_h264_rc {
     float    mad_frame_pred;
     uint16_t mb_cnt;
     int32_t  ebits;
+    int32_t  ebits_sat_clip;
     float    err_sum;
     uint8_t  frame_num;
 } esp_h264_rc_t;
@@ -49,6 +50,9 @@ esp_h264_rc_hd_t esp_h264_enc_hw_rc_new(uint8_t qp_max, uint8_t qp_min, uint32_t
     prc->qp_min = qp_min;
     prc->qpm = (qp_max + qp_min) >> 1;
     prc->bits_per_frame = bitrate / fps;
+    // cap the error to one second of bitrate budget.
+    // this avoids overcompensating for too long after recovery
+    prc->ebits_sat_clip = (int32_t)bitrate;
     prc->mb_cnt = mb_width * mb_height;
     float mad = 8.0 / (init_mad[(53 / (prc->qpm + 1))]);
     for (uint8_t i = 0; i < 4; i++) {
@@ -71,6 +75,7 @@ void esp_h264_enc_hw_rc_set_bt_fps(esp_h264_rc_hd_t rc_hd, uint32_t bitrate, uin
 {
     esp_h264_rc_t *prc = (esp_h264_rc_t *)rc_hd;
     prc->bits_per_frame = bitrate / fps;
+    prc->ebits_sat_clip = (int32_t)bitrate;
 }
 
 void esp_h264_rc_start(esp_h264_rc_hd_t rc_hd, bool is_iframe, uint32_t *rate, uint32_t *pred_mad, uint8_t *qp)
@@ -102,7 +107,9 @@ void esp_h264_rc_end(esp_h264_rc_hd_t rc_hd, uint32_t total_enc_bits, uint32_t f
     float bits_err;
     float mad_cur = 1.0 * frame_mad_sum / prc->mb_cnt;
     prc->qp_average_frame = frame_qp_sum / prc->mb_cnt;
-    prc->ebits += total_enc_bits - prc->bits_per_frame;
+
+    int32_t frame_err = (int32_t)total_enc_bits - (int32_t)prc->bits_per_frame;
+    prc->ebits = CLIP3(-prc->ebits_sat_clip, prc->ebits_sat_clip, prc->ebits + frame_err);
 
     prc->mad[(prc->frame_num & 0x3)] = mad_cur;
     prc->frame_bits_last[(prc->frame_num & 0x3)] = total_enc_bits;
