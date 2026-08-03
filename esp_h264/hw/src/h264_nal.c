@@ -166,7 +166,10 @@ uint16_t esp_h264_enc_set_sps(uint8_t *buffer, uint16_t len, uint16_t height, ui
     uint8_t frame_mbs_only_flag = 1;
     uint8_t direct_8x8_inference_flag = 0;
     uint8_t frame_cropping_flag = (width % 16 != 0) || (height % 16 != 0);
-    uint8_t vui_parameter_present_flag = 0;
+    /* Signal fps in VUI timing_info so decoders can recover:
+     * fps = time_scale / (2 * num_units_in_tick)  (progressive, fixed frame rate)
+     */
+    uint8_t vui_parameters_present_flag = 1;
 
     bs_write_u(&bs, forbidden_zero_bit, 1);
     bs_write_u(&bs, nal_ref_idc, 2);
@@ -205,7 +208,36 @@ uint16_t esp_h264_enc_set_sps(uint8_t *buffer, uint16_t len, uint16_t height, ui
         bs_write_ue(&bs, frame_crop_top_offset);
         bs_write_ue(&bs, frame_crop_bottom_offset);
     }
-    bs_write_u(&bs, vui_parameter_present_flag, 1);
+    bs_write_u(&bs, vui_parameters_present_flag, 1);
+    if (vui_parameters_present_flag) {
+        uint8_t aspect_ratio_info_present_flag = 0;
+        uint8_t overscan_info_present_flag = 0;
+        uint8_t video_signal_type_present_flag = 0;
+        uint8_t chroma_loc_info_present_flag = 0;
+        uint8_t timing_info_present_flag = 1;
+        uint32_t num_units_in_tick = 1;
+        uint32_t time_scale = (uint32_t)fps * 2;
+        uint8_t fixed_frame_rate_flag = 1;
+        uint8_t nal_hrd_parameters_present_flag = 0;
+        uint8_t vcl_hrd_parameters_present_flag = 0;
+        uint8_t pic_struct_present_flag = 0;
+        uint8_t bitstream_restriction_flag = 0;
+
+        bs_write_u(&bs, aspect_ratio_info_present_flag, 1);
+        bs_write_u(&bs, overscan_info_present_flag, 1);
+        bs_write_u(&bs, video_signal_type_present_flag, 1);
+        bs_write_u(&bs, chroma_loc_info_present_flag, 1);
+        bs_write_u(&bs, timing_info_present_flag, 1);
+        if (timing_info_present_flag) {
+            bs_write_u(&bs, num_units_in_tick, 32);
+            bs_write_u(&bs, time_scale, 32);
+            bs_write_u(&bs, fixed_frame_rate_flag, 1);
+        }
+        bs_write_u(&bs, nal_hrd_parameters_present_flag, 1);
+        bs_write_u(&bs, vcl_hrd_parameters_present_flag, 1);
+        bs_write_u(&bs, pic_struct_present_flag, 1);
+        bs_write_u(&bs, bitstream_restriction_flag, 1);
+    }
     bs_rbsp_trailing(&bs);
     return nal_bs_size(&bs) + 32;
 }

@@ -1,19 +1,185 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <string.h>
+#include <stdint.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_h264_hw_enc_test.h"
 #include "esp_h264_alloc.h"
 #include "h264_io.h"
 
+#define HW_ENC_OPEN_TIME_ROUNDS 10
+
 static int write_mvm(esp_h264_enc_mvm_pkt_t *mv_pkt, uint32_t length)
 {
     return 1;
+}
+
+typedef struct {
+    const uint8_t *data;
+    size_t         size;
+    size_t         bit_pos;
+} sps_bs_t;
+
+static int sps_bs_eof(const sps_bs_t *bs, uint32_t nbits)
+{
+    return (bs->bit_pos + nbits) > (bs->size * 8);
+}
+
+static uint32_t sps_bs_read_u(sps_bs_t *bs, uint32_t n)
+{
+    uint32_t v = 0;
+    for (uint32_t i = 0; i < n; i++) {
+        if (sps_bs_eof(bs, 1)) {
+            return 0;
+        }
+        size_t byte_i = bs->bit_pos / 8;
+        int bit_i = 7 - (int)(bs->bit_pos % 8);
+        v = (v << 1) | ((bs->data[byte_i] >> bit_i) & 0x1);
+        bs->bit_pos++;
+    }
+    return v;
+}
+
+static uint32_t sps_bs_read_ue(sps_bs_t *bs)
+{
+    int zeros = 0;
+    while (!sps_bs_eof(bs, 1) && sps_bs_read_u(bs, 1) == 0) {
+        zeros++;
+        if (zeros > 31) {
+            return 0;
+        }
+    }
+    if (zeros == 0) {
+        return 0;
+    }
+    return ((1U << zeros) - 1U) + sps_bs_read_u(bs, (uint32_t)zeros);
+}
+
+/**
+ * Parse fps from Baseline SPS VUI timing_info:
+ * fps = time_scale / (2 * num_units_in_tick)
+ *
+ * @return parsed fps on success, 0 on failure
+ */
+static uint8_t parse_sps_vui_timing_fps(const uint8_t *nal, size_t nal_bytes)
+{
+    if (nal == NULL || nal_bytes < 5) {
+        return 0;
+    }
+
+    size_t off = 0;
+    if (nal_bytes >= 4 && nal[0] == 0x00 && nal[1] == 0x00 && nal[2] == 0x00 && nal[3] == 0x01) {
+        off = 4;
+    } else if (nal_bytes >= 3 && nal[0] == 0x00 && nal[1] == 0x00 && nal[2] == 0x01) {
+        off = 3;
+    }
+
+    sps_bs_t bs = {
+        .data = nal + off,
+        .size = nal_bytes - off,
+        .bit_pos = 0,
+    };
+
+    (void)sps_bs_read_u(&bs, 1); /* forbidden_zero_bit */
+    (void)sps_bs_read_u(&bs, 2); /* nal_ref_idc */
+    if (sps_bs_read_u(&bs, 5) != 7) {
+        return 0;
+    }
+
+    uint32_t profile_idc = sps_bs_read_u(&bs, 8);
+    (void)sps_bs_read_u(&bs, 8); /* constraint_set + reserved */
+    (void)sps_bs_read_u(&bs, 8); /* level_idc */
+    (void)sps_bs_read_ue(&bs);   /* seq_parameter_set_id */
+
+    /* Encoder writes Baseline(66); High profile extensions are unsupported here */
+    if (profile_idc == 100 || profile_idc == 110 || profile_idc == 122 || profile_idc == 244 ||
+            profile_idc == 44 || profile_idc == 83 || profile_idc == 86 || profile_idc == 118 ||
+            profile_idc == 128 || profile_idc == 138 || profile_idc == 139 || profile_idc == 134 ||
+            profile_idc == 135) {
+        return 0;
+    }
+
+    (void)sps_bs_read_ue(&bs); /* log2_max_frame_num_minus4 */
+    uint32_t pic_order_cnt_type = sps_bs_read_ue(&bs);
+    if (pic_order_cnt_type == 0) {
+        (void)sps_bs_read_ue(&bs);
+    } else if (pic_order_cnt_type == 1) {
+        return 0;
+    }
+    (void)sps_bs_read_ue(&bs); /* num_ref_frames */
+    (void)sps_bs_read_u(&bs, 1);
+    (void)sps_bs_read_ue(&bs); /* pic_width_in_mbs_minus1 */
+    (void)sps_bs_read_ue(&bs); /* pic_height_in_map_units_minus1 */
+    if (!sps_bs_read_u(&bs, 1)) {
+        (void)sps_bs_read_u(&bs, 1);
+    }
+    (void)sps_bs_read_u(&bs, 1); /* direct_8x8_inference_flag */
+    if (sps_bs_read_u(&bs, 1)) {
+        (void)sps_bs_read_ue(&bs);
+        (void)sps_bs_read_ue(&bs);
+        (void)sps_bs_read_ue(&bs);
+        (void)sps_bs_read_ue(&bs);
+    }
+
+    if (!sps_bs_read_u(&bs, 1)) {
+        return 0; /* vui_parameters_present_flag */
+    }
+    if (sps_bs_read_u(&bs, 1)) { /* aspect_ratio_info_present_flag */
+        if (sps_bs_read_u(&bs, 8) == 255) {
+            (void)sps_bs_read_u(&bs, 16);
+            (void)sps_bs_read_u(&bs, 16);
+        }
+    }
+    if (sps_bs_read_u(&bs, 1)) {
+        (void)sps_bs_read_u(&bs, 1);
+    }
+    if (sps_bs_read_u(&bs, 1)) {
+        (void)sps_bs_read_u(&bs, 3);
+        if (sps_bs_read_u(&bs, 1)) {
+            (void)sps_bs_read_u(&bs, 8);
+            (void)sps_bs_read_u(&bs, 8);
+            (void)sps_bs_read_u(&bs, 8);
+        }
+    }
+    if (sps_bs_read_u(&bs, 1)) {
+        (void)sps_bs_read_ue(&bs);
+        (void)sps_bs_read_ue(&bs);
+    }
+
+    if (!sps_bs_read_u(&bs, 1)) {
+        return 0; /* timing_info_present_flag */
+    }
+    uint32_t num_units_in_tick = sps_bs_read_u(&bs, 32);
+    uint32_t time_scale = sps_bs_read_u(&bs, 32);
+    (void)sps_bs_read_u(&bs, 1); /* fixed_frame_rate_flag */
+    if (num_units_in_tick == 0) {
+        return 0;
+    }
+    uint32_t fps = time_scale / (2U * num_units_in_tick);
+    if (fps == 0 || fps > 255) {
+        return 0;
+    }
+    return (uint8_t)fps;
+}
+
+static esp_h264_err_t check_out_frame_sps_fps(const esp_h264_enc_out_frame_t *out_frame, uint8_t expect_fps)
+{
+    if (out_frame == NULL || out_frame->raw_data.buffer == NULL || out_frame->length < 5) {
+        printf("SPS fps check failed: empty frame. line %d\n", __LINE__);
+        return ESP_H264_ERR_FAIL;
+    }
+    uint8_t sps_fps = parse_sps_vui_timing_fps(out_frame->raw_data.buffer, out_frame->length);
+    if (sps_fps != expect_fps) {
+        printf("SPS fps mismatch: expect %u, got %u. line %d\n", expect_fps, sps_fps, __LINE__);
+        return ESP_H264_ERR_FAIL;
+    }
+    return ESP_H264_ERR_OK;
 }
 
 esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg)
@@ -22,6 +188,7 @@ esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg)
     esp_h264_enc_out_frame_t out_frame = {0};
     esp_h264_err_t ret = ESP_H264_ERR_OK;
     esp_h264_enc_handle_t enc = NULL;
+    bool first_frame = true;
     uint16_t width = ((cfg.res.width + 15) >> 4 << 4);
     uint16_t height = ((cfg.res.height + 15) >> 4 << 4);
     in_frame.raw_data.len = (int)((float)width * height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
@@ -56,11 +223,23 @@ esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg)
             printf("process failed. line %d \n", __LINE__);
             goto _exit_;
         }
+        if (first_frame) {
+            ret = check_out_frame_sps_fps(&out_frame, cfg.fps);
+            if (ret != ESP_H264_ERR_OK) {
+                goto _exit_;
+            }
+            first_frame = false;
+        }
         write_enc_cb(&out_frame);
     }
 _exit_:
-    ret = esp_h264_enc_close(enc);
-    ret = esp_h264_enc_del(enc);
+    if (enc) {
+        esp_h264_err_t close_ret = esp_h264_enc_close(enc);
+        esp_h264_err_t del_ret = esp_h264_enc_del(enc);
+        if (ret == ESP_H264_ERR_OK) {
+            ret = (close_ret != ESP_H264_ERR_OK) ? close_ret : del_ret;
+        }
+    }
     if (in_frame.raw_data.buffer) {
         esp_h264_free(in_frame.raw_data.buffer);
     }
@@ -76,9 +255,11 @@ esp_h264_err_t dual_hw_enc_process(esp_h264_enc_cfg_dual_hw_t cfg)
     esp_h264_enc_out_frame_t *out_frame[2] = {NULL, NULL};
     esp_h264_err_t ret = ESP_H264_ERR_OK;
     esp_h264_enc_dual_handle_t enc = NULL;
+    bool first_frame = true;
     int32_t out_length[2];
     int16_t width[2] = { ((cfg.cfg0.res.width + 15) >> 4 << 4), ((cfg.cfg1.res.width + 15) >> 4 << 4)};
     int16_t height[2] = { ((cfg.cfg0.res.height + 15) >> 4 << 4), ((cfg.cfg1.res.height + 15) >> 4 << 4)};
+    uint8_t expect_fps[2] = { cfg.cfg0.fps, cfg.cfg1.fps };
     out_length[0] = width[0] * height[0] * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg0.pic_type);
     out_length[1] = width[1] * height[1] * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg1.pic_type);
     for (int16_t i = 0; i < 2; i++) {
@@ -130,13 +311,28 @@ esp_h264_err_t dual_hw_enc_process(esp_h264_enc_cfg_dual_hw_t cfg)
             printf("process failed. line %d \n", __LINE__);
             goto _exit_dual_;
         }
+        if (first_frame) {
+            for (int16_t i = 0; i < 2; i++) {
+                ret = check_out_frame_sps_fps(out_frame[i], expect_fps[i]);
+                if (ret != ESP_H264_ERR_OK) {
+                    printf("dual stream%d SPS fps check failed. line %d\n", i, __LINE__);
+                    goto _exit_dual_;
+                }
+            }
+            first_frame = false;
+        }
         for (int16_t i = 0; i < 2; i++) {
             write_enc_cb(out_frame[i]);
         }
     }
 _exit_dual_:
-    ret = esp_h264_enc_dual_close(enc);
-    ret = esp_h264_enc_dual_del(enc);
+    if (enc) {
+        esp_h264_err_t close_ret = esp_h264_enc_dual_close(enc);
+        esp_h264_err_t del_ret = esp_h264_enc_dual_del(enc);
+        if (ret == ESP_H264_ERR_OK) {
+            ret = (close_ret != ESP_H264_ERR_OK) ? close_ret : del_ret;
+        }
+    }
     for (int16_t i = 0; i < 2; i++) {
         if (in_frame[i]) {
             if (in_frame[i]->raw_data.buffer) {
@@ -152,6 +348,152 @@ _exit_dual_:
         }
     }
     return ret;
+}
+
+esp_h264_err_t single_hw_enc_open_time_test(esp_h264_enc_cfg_hw_t cfg)
+{
+    esp_h264_err_t ret = ESP_H264_ERR_OK;
+    int64_t new_sum_us = 0;
+    int64_t open_sum_us = 0;
+    int64_t new_max_us = 0;
+    int64_t open_max_us = 0;
+    int64_t new_min_us = INT64_MAX;
+    int64_t open_min_us = INT64_MAX;
+
+    for (int i = 0; i < HW_ENC_OPEN_TIME_ROUNDS; i++) {
+        esp_h264_enc_handle_t enc = NULL;
+        int64_t t0 = esp_timer_get_time();
+        ret = esp_h264_enc_hw_new(&cfg, &enc);
+        int64_t t1 = esp_timer_get_time();
+        if (ret != ESP_H264_ERR_OK) {
+            printf("new failed. round %d line %d\n", i, __LINE__);
+            return ret;
+        }
+
+        int64_t t2 = esp_timer_get_time();
+        ret = esp_h264_enc_open(enc);
+        int64_t t3 = esp_timer_get_time();
+        if (ret != ESP_H264_ERR_OK) {
+            printf("open failed. round %d line %d\n", i, __LINE__);
+            esp_h264_enc_del(enc);
+            return ret;
+        }
+
+        int64_t new_us = t1 - t0;
+        int64_t open_us = t3 - t2;
+        new_sum_us += new_us;
+        open_sum_us += open_us;
+        if (new_us > new_max_us) {
+            new_max_us = new_us;
+        }
+        if (open_us > open_max_us) {
+            open_max_us = open_us;
+        }
+        if (new_us < new_min_us) {
+            new_min_us = new_us;
+        }
+        if (open_us < open_min_us) {
+            open_min_us = open_us;
+        }
+
+        ret = esp_h264_enc_close(enc);
+        if (ret != ESP_H264_ERR_OK) {
+            printf("close failed. round %d line %d\n", i, __LINE__);
+            esp_h264_enc_del(enc);
+            return ret;
+        }
+        ret = esp_h264_enc_del(enc);
+        if (ret != ESP_H264_ERR_OK) {
+            printf("del failed. round %d line %d\n", i, __LINE__);
+            return ret;
+        }
+    }
+
+    printf("single_hw_enc open time: res=%dx%d rounds=%d "
+           "new(avg/min/max)=%lld/%lld/%lld us "
+           "open(avg/min/max)=%lld/%lld/%lld us "
+           "new+open_avg=%lld us\n",
+           cfg.res.width, cfg.res.height, HW_ENC_OPEN_TIME_ROUNDS,
+           (long long)(new_sum_us / HW_ENC_OPEN_TIME_ROUNDS),
+           (long long)new_min_us, (long long)new_max_us,
+           (long long)(open_sum_us / HW_ENC_OPEN_TIME_ROUNDS),
+           (long long)open_min_us, (long long)open_max_us,
+           (long long)((new_sum_us + open_sum_us) / HW_ENC_OPEN_TIME_ROUNDS));
+    return ESP_H264_ERR_OK;
+}
+
+esp_h264_err_t dual_hw_enc_open_time_test(esp_h264_enc_cfg_dual_hw_t cfg)
+{
+    esp_h264_err_t ret = ESP_H264_ERR_OK;
+    int64_t new_sum_us = 0;
+    int64_t open_sum_us = 0;
+    int64_t new_max_us = 0;
+    int64_t open_max_us = 0;
+    int64_t new_min_us = INT64_MAX;
+    int64_t open_min_us = INT64_MAX;
+
+    for (int i = 0; i < HW_ENC_OPEN_TIME_ROUNDS; i++) {
+        esp_h264_enc_dual_handle_t enc = NULL;
+        int64_t t0 = esp_timer_get_time();
+        ret = esp_h264_enc_dual_hw_new(&cfg, &enc);
+        int64_t t1 = esp_timer_get_time();
+        if (ret != ESP_H264_ERR_OK) {
+            printf("dual new failed. round %d line %d\n", i, __LINE__);
+            return ret;
+        }
+
+        int64_t t2 = esp_timer_get_time();
+        ret = esp_h264_enc_dual_open(enc);
+        int64_t t3 = esp_timer_get_time();
+        if (ret != ESP_H264_ERR_OK) {
+            printf("dual open failed. round %d line %d\n", i, __LINE__);
+            esp_h264_enc_dual_del(enc);
+            return ret;
+        }
+
+        int64_t new_us = t1 - t0;
+        int64_t open_us = t3 - t2;
+        new_sum_us += new_us;
+        open_sum_us += open_us;
+        if (new_us > new_max_us) {
+            new_max_us = new_us;
+        }
+        if (open_us > open_max_us) {
+            open_max_us = open_us;
+        }
+        if (new_us < new_min_us) {
+            new_min_us = new_us;
+        }
+        if (open_us < open_min_us) {
+            open_min_us = open_us;
+        }
+
+        ret = esp_h264_enc_dual_close(enc);
+        if (ret != ESP_H264_ERR_OK) {
+            printf("dual close failed. round %d line %d\n", i, __LINE__);
+            esp_h264_enc_dual_del(enc);
+            return ret;
+        }
+        ret = esp_h264_enc_dual_del(enc);
+        if (ret != ESP_H264_ERR_OK) {
+            printf("dual del failed. round %d line %d\n", i, __LINE__);
+            return ret;
+        }
+    }
+
+    printf("dual_hw_enc open time: res0=%dx%d res1=%dx%d rounds=%d "
+           "new(avg/min/max)=%lld/%lld/%lld us "
+           "open(avg/min/max)=%lld/%lld/%lld us "
+           "new+open_avg=%lld us\n",
+           cfg.cfg0.res.width, cfg.cfg0.res.height,
+           cfg.cfg1.res.width, cfg.cfg1.res.height,
+           HW_ENC_OPEN_TIME_ROUNDS,
+           (long long)(new_sum_us / HW_ENC_OPEN_TIME_ROUNDS),
+           (long long)new_min_us, (long long)new_max_us,
+           (long long)(open_sum_us / HW_ENC_OPEN_TIME_ROUNDS),
+           (long long)open_min_us, (long long)open_max_us,
+           (long long)((new_sum_us + open_sum_us) / HW_ENC_OPEN_TIME_ROUNDS));
+    return ESP_H264_ERR_OK;
 }
 
 /** GOP FPS RC */

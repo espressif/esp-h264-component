@@ -20,11 +20,32 @@
 /**
  * @brief  Allocate an aligned chunk of memory which has the given capabilities.
  *
- * @param[in]  alignment  How the pointer received needs to be aligned must be a power of two.
- *                        If the value is less than cache line size, the value will be forced cache line size.
- * @param[in]  n          Number of continuing chunks of memory to allocate
- * @param[in]  size       Size, in bytes, of a chunk of memory to allocate
- * @param[in]  caps       ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @note   Memory is not initialized (same semantics as malloc).
+ *
+ * @param[in]   alignment    How the pointer received needs to be aligned must be a power of two.
+ *                           If the value is less than cache line size, the value will be forced cache line size.
+ * @param[in]   n            Number of continuing chunks of memory to allocate
+ * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
+ * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
+ * @param[in]   caps         ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ *
+ * @return
+ *       - NULL    Failure
+ *       - others  A pointer to the memory allocated on success
+ */
+void *esp_h264_aligned_malloc(uint32_t alignment, uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps);
+
+/**
+ * @brief  Allocate an aligned chunk of memory which has the given capabilities.
+ *
+ * @note   Memory is zero-initialized (same semantics as calloc).
+ *
+ * @param[in]   alignment    How the pointer received needs to be aligned must be a power of two.
+ *                           If the value is less than cache line size, the value will be forced cache line size.
+ * @param[in]   n            Number of continuing chunks of memory to allocate
+ * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
+ * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
+ * @param[in]   caps         ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
  *
  * @return
  *       - NULL    Failure
@@ -33,12 +54,28 @@
 void *esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps);
 
 /**
+ * @brief  Allocate a chunk of memory as preference in decreasing order (malloc, not zeroed)
+ *
+ * @param[in]   n            Number of continuing chunks of memory to allocate
+ * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
+ * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
+ * @param[in]   caps1        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps2        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ *
+ * @return
+ *       - NULL    Failure
+ *       - others  A pointer to the memory allocated on success
+ */
+void *esp_h264_malloc_prefer(uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps1, uint32_t caps2);
+
+/**
  * @brief  Allocate a chunk of memory as preference in decreasing order. And helper function for calloc a cache aligned data memory buffer
  *
- * @param[in]  n      Number of continuing chunks of memory to allocate
- * @param[in]  size   Size, in bytes, of a chunk of memory to allocate
- * @param[in]  caps1  ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
- * @param[in]  caps2  ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   n            Number of continuing chunks of memory to allocate
+ * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
+ * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
+ * @param[in]   caps1        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps2        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
  *
  * @return
  *       - NULL    Failure

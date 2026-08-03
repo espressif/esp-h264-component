@@ -204,6 +204,61 @@ TEST_CASE("hw_enc_dual_hw_enc_pic_type_test", "[esp_h264]")
 }
 #endif
 
+TEST_CASE("hw_enc_single_hw_enc_open_time_test", "[esp_h264]")
+{
+    /* Cover small / mid / 1080p: buffer alloc cost is dominated by new() */
+    const int16_t res_list[][2] = {
+        {128, 128},
+        {640, 480},
+        {1280, 720},
+        {1920, 1080},
+    };
+    for (size_t i = 0; i < sizeof(res_list) / sizeof(res_list[0]); i++) {
+        esp_h264_enc_cfg_hw_t cfg = { 0 };
+        cfg.gop = 30;
+        cfg.fps = 30;
+        cfg.res.width = res_list[i][0];
+        cfg.res.height = res_list[i][1];
+        cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
+        cfg.rc.qp_min = 26;
+        cfg.rc.qp_max = 26;
+        cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, single_hw_enc_open_time_test(cfg));
+    }
+}
+
+TEST_CASE("hw_enc_dual_hw_enc_open_time_test", "[esp_h264]")
+{
+    /* Cap at 720p: dual allocates two ref/db buffers */
+    const int16_t res_list[][2] = {
+        {128, 128},
+        {640, 480},
+        {1280, 720},
+        {1920, 1080},
+    };
+    for (size_t i = 0; i < sizeof(res_list) / sizeof(res_list[0]); i++) {
+        esp_h264_enc_cfg_dual_hw_t cfg = { 0 };
+        cfg.cfg0.gop = 30;
+        cfg.cfg0.fps = 30;
+        cfg.cfg0.res.width = res_list[i][0];
+        cfg.cfg0.res.height = res_list[i][1];
+        cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
+        cfg.cfg0.rc.qp_min = 26;
+        cfg.cfg0.rc.qp_max = 26;
+        cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+        cfg.cfg1.gop = 30;
+        cfg.cfg1.fps = 15;
+        cfg.cfg1.res.width = res_list[i][0];
+        cfg.cfg1.res.height = res_list[i][1];
+        cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
+        cfg.cfg1.rc.qp_min = 26;
+        cfg.cfg1.rc.qp_max = 26;
+        cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, dual_hw_enc_open_time_test(cfg));
+    }
+}
+
 TEST_CASE("hw_enc_set_get_param_single_hw_enc_thread_test", "[esp_h264]")
 {
     esp_h264_enc_cfg_hw_t cfg = { 0 };
