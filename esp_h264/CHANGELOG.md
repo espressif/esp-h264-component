@@ -8,6 +8,10 @@
 - Added `esp_h264_aligned_malloc` and `esp_h264_malloc_prefer` for non-zeroing allocation
 - Used malloc for large HW encoder reference and deblocking buffers to reduce `new` latency
 
+### Fixes
+
+- Fixed `CLIP3` argument order in HW rate control so `eqp` is clamped to [-5, 5] correctly (avoids RC oscillation)
+
 ## 1.3.6
 
 ### Features

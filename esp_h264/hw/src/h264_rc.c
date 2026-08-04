@@ -121,7 +121,7 @@ void esp_h264_rc_end(esp_h264_rc_hd_t rc_hd, uint32_t total_enc_bits, uint32_t f
     } else {
         prc->err_sum += bits_err;
     }
-    prc->eqp = CLIP3((int)prc->err_sum, -5, 5);
+    prc->eqp = CLIP3(-5, 5, (int)prc->err_sum);
     float err_bit_per_frame = 1.0 * prc->ebits / prc->bits_per_frame;
     if (err_bit_per_frame > 0.2) {
         prc->eqp = 1;
