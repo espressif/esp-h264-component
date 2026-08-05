@@ -16,10 +16,10 @@ extern "C" {
  *  Features:
  *     - H264 hardware encoder
  *            - Support baseline profile (max frame size is 36864 macro-block)
- *            - Support a variety of widths in range[80, 1088] and heights in range [80, 2048]
+ *            - Support a variety of widths in range [80, 1920] and heights in range [80, 2032]
  *            - Support quality first rate control
  *            - Support YUV420 UYVY BGR888 RGB565_LE VUY raw data
- *            - Support dynamic changes about bit rate, frame rate, GOP , QP .ect.
+ *            - Support dynamic changes about bit rate, frame rate, GOP, QP, etc.
  *            - Support single and dual stream encoder
  *            - Support de-blocking filter, ROI, MV function
  *            - Support forcing the next frame to IDR via `esp_h264_enc_force_idr` without changing the configured GOP

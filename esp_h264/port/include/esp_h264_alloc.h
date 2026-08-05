@@ -69,7 +69,7 @@ void *esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uin
 void *esp_h264_malloc_prefer(uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps1, uint32_t caps2);
 
 /**
- * @brief  Allocate a chunk of memory as preference in decreasing order. And helper function for calloc a cache aligned data memory buffer
+ * @brief  Allocate a zero-initialized chunk of memory as preference in decreasing order (calloc)
  *
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate

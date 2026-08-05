@@ -13,32 +13,31 @@ extern "C" {
 #endif
 
 /**
- * @brief  H.264 range of interesting (ROI) mode
+ * @brief  H.264 region of interest (ROI) mode
  */
 typedef enum {
-    ESP_H264_ROI_MODE_DISABLE  = -1,  /*<! The ROI mode is disable */
-    ESP_H264_ROI_MODE_FIX_QP   =  0,  /*<! The QP of ROI is fixed */
-    ESP_H264_ROI_MODE_DELTA_QP =  1,  /*<! The delta quantization parameter(QP). The ROI region QP is sum of delta QP and slice QP */
+    ESP_H264_ROI_MODE_DISABLE  = -1,  /*<! The ROI mode is disabled */
+    ESP_H264_ROI_MODE_FIX_QP   =  0,  /*<! The QP of the ROI is fixed */
+    ESP_H264_ROI_MODE_DELTA_QP =  1,  /*<! Delta quantization parameter (QP). The ROI region QP is the sum of delta QP and slice QP */
     ESP_H264_ROI_MODE_INVALID  =  2,  /*<! Invalid value */
 } esp_h264_roi_mode_t;
 
 /**
- * @brief  Range of interesting (ROI) configuration
+ * @brief  Region of interest (ROI) configuration
  */
 typedef struct {
-    esp_h264_roi_mode_t roi_mode;          /*<! Range of interesting mode */
-    int8_t              none_roi_delta_qp; /*<! Delta quantization parameter(QP) of none ROI region, the range in [-51, 51] */
+    esp_h264_roi_mode_t roi_mode;          /*<! Region of interest mode */
+    int8_t              none_roi_delta_qp; /*<! Delta quantization parameter (QP) of the non-ROI region; range is [-51, 51] */
 } esp_h264_enc_roi_cfg_t;
 
 /**
- * @brief  Range of interesting (ROI) region.
- *         A region-of-interest based video coding technique reduces quantization parameter(QP) values to allocate more bit rates to improve the picture quality,
- *         and to increase the QP to allocate fewer bit rates to areas that are not interested (the picture quality of these areas will be degraded),
- *         so that without losing the overall quality of the picture.
- *         It can save network bandwidth usage and video storage space, or improve the overall video quality without increasing network bandwidth usage and storage space.
+ * @brief  Region of interest (ROI) region.
+ *         ROI coding lowers QP in the region of interest to improve local quality, and raises QP
+ *         outside that region to save bits, while keeping overall quality acceptable.
+ *         This can reduce bandwidth and storage, or improve quality for the same budget.
  *
- * @note  `mb_width`   The width of picture in macroblocks
- *        `mb_height`  The height of picture in macroblock
+ * @note  `mb_width`   Width of the picture in macroblocks
+ *        `mb_height`  Height of the picture in macroblocks
  *
  *         |<---            mb_width                 ---->|    _
  *         |----------------------------------------------|    ^
@@ -49,51 +48,51 @@ typedef struct {
  *         |            |______________|_                 |    |
  *         |                                              |
  *         |                                              |
- *         |       None ROI region                        |
+ *         |       Non-ROI region                         |
  *         |       none_roi_delta_qp + slice QP           |    v
  *         |----------------------------------------------|    _
  *
  */
 typedef struct {
-    uint8_t x;        /*<! Start position in horizontal direction. units macroblock size. Maximum value is `mb_width`*/
-    uint8_t y;        /*<! Start position in vertical direction. units macroblock size. Maximum value is `mb_height`*/
-    uint8_t len_x;    /*<! ROI length in horizontal direction. units macroblock size. Maximum value is `mb_width`
-                           And the sum `x` and `len_x` cannot be greater than `mb_width`.*/
-    uint8_t len_y;    /*<! ROI length in vertical direction. units macroblock size. Maximum value is `mb_height`
-                           And the sum `y` and `len_y` cannot be greater than `mb_height`*/
-    int8_t  qp;       /*<! Fixed quantization parameter(QP) or delta QP
+    uint8_t x;        /*<! Start position in the horizontal direction, in units of macroblock size. Maximum value is `mb_width` */
+    uint8_t y;        /*<! Start position in the vertical direction, in units of macroblock size. Maximum value is `mb_height` */
+    uint8_t len_x;    /*<! ROI length in the horizontal direction, in units of macroblock size. Maximum value is `mb_width`.
+                           The sum of `x` and `len_x` cannot be greater than `mb_width`. */
+    uint8_t len_y;    /*<! ROI length in the vertical direction, in units of macroblock size. Maximum value is `mb_height`.
+                           The sum of `y` and `len_y` cannot be greater than `mb_height`. */
+    int8_t  qp;       /*<! Fixed quantization parameter (QP) or delta QP
                            |-----------------------------|-------------------|----------------------------------|------------|
                            |  roi_mode                   |  ROI QP           |  NONE_ROI_QP                     |  `qp` range
                            |-----------------------------|-------------------|----------------------------------|------------|
-                           |  ESP_H264_ROI_MODE_DISABLE  |  disable          |  disable                         |  disable   |
+                           |  ESP_H264_ROI_MODE_DISABLE  |  disabled         |  disabled                        |  disabled  |
                            |-----------------------------|-------------------|----------------------------------|------------|
                            |  ESP_H264_ROI_MODE_DELTA_QP |  `qp` + slice QP  |  none_roi_delta_qp + slice QP    |  [-51, 51] |
                            |-----------------------------|-------------------|----------------------------------|------------|
-                           |  ESP_H264_ROI_MODE_FIX_QP   |  `qp`             |  none_roi_delta_qp +slice QP     |  [0, 51]   |
+                           |  ESP_H264_ROI_MODE_FIX_QP   |  `qp`             |  none_roi_delta_qp + slice QP    |  [0, 51]   |
                            |-----------------------------|-------------------|----------------------------------|------------|
-                           NOTE  slice QP is the slice QP. */
-    uint8_t reg_idx;  /*<! The index of ROI region. It must be less than 8 */
+                           NOTE: slice QP is the QP of the current slice. */
+    uint8_t reg_idx;  /*<! Index of the ROI region. It must be less than 8 */
 } esp_h264_enc_roi_reg_t;
 
 /**
- * @brief  H.264 motion vector(MV) result of predicted frame (P frame). And this is for 16*16 macro-block
+ * @brief  H.264 motion vector (MV) result of a predicted frame (P-frame), for 16x16 macroblocks
  */
 typedef enum {
-    ESP_H264_MVM_MODE_DISABLE = -1,  /*<! The MV mode is disable */
-    ESP_H264_MVM_MODE_P16X16  =  0,  /*<! The 16 * 16 macro block MV data collection*/
-    ESP_H264_MVM_MODE_MINV,          /*<! If sub-macro-block exists, the MV data is minimum of sub-macro-block MV data.
-                                          Otherwise it's result of 16 * 16 macro block MV data. */
-    ESP_H264_MVM_MODE_MAXV,          /*<! If sub-macro-block exists, the MV data is maximum of sub-macro-block MV data.
-                                          Otherwise it's result of 16 * 16 macro block MV data. */
-    ESP_H264_MVM_MODE_INVALID,       /*<! Invalid value*/
+    ESP_H264_MVM_MODE_DISABLE = -1,  /*<! The MV mode is disabled */
+    ESP_H264_MVM_MODE_P16X16  =  0,  /*<! Collect 16x16 macroblock MV data */
+    ESP_H264_MVM_MODE_MINV,          /*<! If a sub-macroblock exists, use the minimum of the sub-macroblock MV data.
+                                          Otherwise use the 16x16 macroblock MV data. */
+    ESP_H264_MVM_MODE_MAXV,          /*<! If a sub-macroblock exists, use the maximum of the sub-macroblock MV data.
+                                          Otherwise use the 16x16 macroblock MV data. */
+    ESP_H264_MVM_MODE_INVALID,       /*<! Invalid value */
 } esp_h264_enc_mvm_mode_t;
 
 /**
- * @brief  H.264 motion vector(MV) result format
+ * @brief  H.264 motion vector (MV) result format
  */
 typedef enum {
     ESP_H264_MVM_FMT_ALL = 0,  /*<! Output all MV data except zero */
-    ESP_H264_MVM_FMT_PART,     /*<! Output horizontal or vertical direction MV data that is greater than or equal 4 */
+    ESP_H264_MVM_FMT_PART,     /*<! Output horizontal or vertical MV data with absolute value greater than or equal to 4 */
     ESP_H264_MVM_FMT_INVALID,  /*<! Invalid value */
 } esp_h264_enc_mvm_fmt_t;
 
@@ -124,9 +123,9 @@ typedef union {
  * @brief  Motion vector (MV) packet
  */
 typedef struct {
-    esp_h264_enc_mv_data_t *data;  /*<! The buffer address is to saving MV data */
-    uint32_t                len;   /*<! The length of MV data buffer in byte
-                                        The maximum is `mb_width * mb_height * sizeof(esp_h264_enc_mv_data_t)`*/
+    esp_h264_enc_mv_data_t *data;  /*<! Buffer address used to store MV data */
+    uint32_t                len;   /*<! Length of the MV data buffer in bytes.
+                                        The maximum is `mb_width * mb_height * sizeof(esp_h264_enc_mv_data_t)` */
 } esp_h264_enc_mvm_pkt_t;
 
 /**
@@ -139,10 +138,10 @@ typedef struct esp_h264_enc_hw_param_if *esp_h264_enc_param_hw_handle_t;
  */
 typedef struct esp_h264_enc_hw_param_if {
     esp_h264_enc_param_t base;                                                                               /*<! Base parameter set handle */
-    esp_h264_err_t (*cfg_roi)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_cfg_t cfg);            /*<! Configure the range of interesting (ROI) */
+    esp_h264_err_t (*cfg_roi)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_cfg_t cfg);            /*<! Configure the region of interest (ROI) */
     esp_h264_err_t (*get_roi_cfg_info)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_cfg_t *cfg);  /*<! Get the ROI configuration parameter */
-    esp_h264_err_t (*set_roi_reg)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_reg_t roi_reg);    /*<! Set range of interesting (ROI) region */
-    esp_h264_err_t (*get_roi_reg)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_reg_t *roi_reg);   /*<! Get range of interesting (ROI) region */
+    esp_h264_err_t (*set_roi_reg)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_reg_t roi_reg);    /*<! Set region of interest (ROI) region */
+    esp_h264_err_t (*get_roi_reg)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_reg_t *roi_reg);   /*<! Get region of interest (ROI) region */
     esp_h264_err_t (*cfg_mv)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mv_cfg_t cfg);              /*<! Configure motion vector(MV) */
     esp_h264_err_t (*get_mv_cfg_info)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mv_cfg_t *cfg);    /*<! Get the MV configuration parameter */
     esp_h264_err_t (*set_mv_pkt)(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mvm_pkt_t mv_pkt);      /*<! Set motion vector(MV) packet */
@@ -191,11 +190,11 @@ esp_h264_err_t esp_h264_enc_hw_get_roi_cfg_info(esp_h264_enc_param_hw_handle_t h
 esp_h264_err_t esp_h264_enc_hw_set_roi_region(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_roi_reg_t roi_reg);
 
 /**
- * @brief  Get range of interesting (ROI) region
+ * @brief  Get region of interest (ROI) region
  *
  * @param[in]   handle       It is a pointer to the hardware H.264 encoding parameters structure
  * @param[out]  out_roi_reg  Pointer to the ROI region structure that will store the retrieved ROI
- *                           If `roi_mode` is `ESP_H264_ROI_MODE_DISABLE`, `roi_reg` will be memset to zero
+ *                           If `roi_mode` is `ESP_H264_ROI_MODE_DISABLE`, `out_roi_reg` will be memset to zero
  *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
@@ -231,13 +230,12 @@ esp_h264_err_t esp_h264_enc_hw_cfg_mv(esp_h264_enc_param_hw_handle_t handle, esp
 esp_h264_err_t esp_h264_enc_hw_get_mv_cfg_info(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mv_cfg_t *out_cfg);
 
 /**
- * @brief  This function allows you to set the MV packet for the H.264 hardware encoder
- *         The MV packet contains the motion vector data information of the video frames being encoded.
- *         Please configure MV first using `esp_h264_enc_hw_cfg_mv`. Otherwise it will return `ESP_H264_ERR_ARG`.
- *         Using `esp_h264_enc_hw_set_mv_pkt` to configure MV packet. After encoder process,
- *         the actual MV data length will gain from `esp_h264_enc_hw_get_mv_data_len`
+ * @brief  Set the MV packet for the H.264 hardware encoder
  *
- * @param[in]  handle  It is a pointer to the hardware H.264 encoding parameters structure
+ * @note  Configure MV first with `esp_h264_enc_hw_cfg_mv`; otherwise this function returns `ESP_H264_ERR_ARG`.
+ *        After encoding, get the actual MV data length with `esp_h264_enc_hw_get_mv_data_len`.
+ *
+ * @param[in]  handle  Pointer to the hardware H.264 encoding parameters structure
  * @param[in]  mv_pkt  The MV packet
  *
  * @return
@@ -248,12 +246,11 @@ esp_h264_err_t esp_h264_enc_hw_get_mv_cfg_info(esp_h264_enc_param_hw_handle_t ha
 esp_h264_err_t esp_h264_enc_hw_set_mv_pkt(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mvm_pkt_t mv_pkt);
 
 /**
- * @brief  This function returns the length of motion vector (MV) data for hardware-based H.264 encoder
- *         The motion vector data length represents the amount of information required to store all the motion vectors for each macroblock in the video frame
+ * @brief  Get the motion vector (MV) data length for the hardware H.264 encoder
  *
- * @param[in]   handle      It is a pointer to the hardware H.264 encoding parameters structure
- * @param[out]  out_length  A pointer to a `uint32_t` variable where the length of motion vector data will be stored
- *                          MV buffer length(Byte) = (*length) * sizeof(esp_h264_enc_mv_data_t)
+ * @param[in]   handle      Pointer to the hardware H.264 encoding parameters structure
+ * @param[out]  out_length  Pointer to a `uint32_t` that receives the number of MV entries.
+ *                          MV buffer size in bytes = (*out_length) * sizeof(esp_h264_enc_mv_data_t)
  *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded

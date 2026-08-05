@@ -12,18 +12,18 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 |            |                         | QP is within the range of 0 to 51.                                                      |
 | FPS        | Frames per second       | It is related to the smoothness of the video. It can be set to 24 in the general video. |
 | I-frame    | Intra frame             | Frames that can be encoded without reference to other frames.                           |
-| IDR-frame  | Instantaneous decoding  | Special I frame.                                                                        |
-|            | refresh frame           | Decoder can start decoding at this frame.                                               |
-| P-frame    | Predicted frame         | Frames that must be decoded referring to other frames.                           |
-| GOP        | Group of picture        | The sum of one I-frame and number of pictures between two I frames.                     |
-|            |                         | GOP is usually set to the number of FPS output by the encoder.                          |
-| Resolution | Resolution              | It means the width and height of picture.                                               |
-| MB         | Macro block             | For picture luma, MB size is 16x16. And for picture chrominance,  MB size is 8x8.       |
+| IDR-frame  | Instantaneous Decoder   | Special I-frame.                                                                        |
+|            | Refresh frame           | Decoder can start decoding at this frame.                                               |
+| P-frame    | Predicted frame         | Frames that must be decoded referring to other frames.                                  |
+| GOP        | Group of pictures       | One I-frame plus the number of frames between two I-frames.                             |
+|            |                         | GOP is usually set to the encoder output FPS.                                           |
+| Resolution | Resolution              | Width and height of the picture.                                                        |
+| MB         | Macro block             | For picture luma, MB size is 16x16. And for picture chrominance, MB size is 8x8.        |
 |            |                         | `mb_width` = (`width` + 15) >> 4. `mb_height` = (`height` + 15) >> 4                    |
 | Slice      | Slice                   | Multiple macroblocks form a slice                                                       |
 | MV         | Motion vector           | The horizontal and vertical displacement of the current MB relative                     |
 |            |                         | to the best matching MB in the previous frame.                                          |
-| ROI        | Range of interest       | The area of ​​interest is in a picture.                                                   |
+| ROI        | Region of interest      | An area of interest within a picture.                                                   |
 |            |                         | This area can be set with different QP to make it clearer or blurrier.                  |
 |            |                         | The quantization unit is the size of a luma MB.                                         |
 | SPS        | Sequence parameter set  | Required to start decoding.                                                             |
@@ -45,32 +45,32 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 | Feature             | HW encoder                                                          | SW encoder                                  |
 | ------------------- | ------------------------------------------------------------------- | ------------------------------------------- |
 | profile             | Support baseline profile                                            | Support baseline profile                    |
-| width               | Supported range is 80 to 1920.                                      | Supported range is greater than or equal 16. |
-| height              | Supported range is 80 to 2032.                                      | Supported range is greater than or equal 16. |
+| width               | Supported range is 80 to 1920.                                      | Supported range is greater than or equal to 16. |
+| height              | Supported range is 80 to 2032.                                      | Supported range is greater than or equal to 16. |
 | QP                  | Supported all                                                       | Supported all                               |
 | FPS                 | Supported FPS range is 1 to 255.                                    | Supported FPS range is 1 to 255.            |
 | GOP                 | Supported GOP range is 1 to 255.                                    | Supported GOP range is 1 to 255.            |
 | Force IDR           | Supported via `esp_h264_enc_force_idr()`.                           | Unsupported                                 |
-| SPS                 | Supported SPS is for all IDR-frame                                  | Supported SPS is for all IDR-frame          |
-| PPS                 | Supported PPS is for all IDR-frame                                  | Supported PPS is for all IDR-frame          |
+| SPS                 | Supported SPS for all IDR frames                                    | Supported SPS for all IDR frames            |
+| PPS                 | Supported PPS for all IDR frames                                    | Supported PPS for all IDR frames            |
 | unencoded data type | Supported ESP_H264_RAW_FMT_O_UYY_E_VYY/VUY/UYVY                     | Supported ESP_H264_RAW_FMT_YUYV             |
 |                     | Supported ESP_H264_RAW_FMT_BGR888/RGB565_LE                         | Supported ESP_H264_RAW_FMT_I420             |
 | RC                  | Supported                                                           | Supported                                   |
 | de-blocking filter  | Supported                                                           | Supported                                   |
 | Single stream       | Supported                                                           | Supported                                   |
-| Dual stream         | Each stream supports different parameter configurations except GOP. | Un-supported                                |
-| ROI                 | Supported ROI region number is not greater than 8.                  | Un-supported                                |
-|                     | Each region supports fixed QP or delta QP.                          | Un-supported                                |
-|                     | Each none region supports delta QP.                                 | Un-supported                                |
-| MV                  | Supported output MV data                                            | Un-supported                                |
+| Dual stream         | Each stream supports different parameter configurations except GOP. | Unsupported                                |
+| ROI                 | Supported ROI region number is not greater than 8.                  | Unsupported                                |
+|                     | Each region supports fixed QP or delta QP.                          | Unsupported                                |
+|                     | Each non-ROI region supports delta QP.                                 | Unsupported                                |
+| MV                  | Supported output MV data                                            | Unsupported                                |
 
 ### decoder
 
 | Feature                                    | SW decoder                                               |
 | ------------------------------------------ | -------------------------------------------------------- |
 | profile                                    | Support constrained baseline profile                     |
-| width                                      | Supported range is greater than or equal 16.              |
-| height                                     | Supported range is greater than or equal 16.              |
+| width                                      | Supported range is greater than or equal to 16.              |
+| height                                     | Supported range is greater than or equal to 16.              |
 | slice group                                | Support 1 slice group                                    |
 | QP                                         | Supported all                                            |
 | FPS                                        | Supported                                                |

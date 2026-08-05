@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /**
- * @brief  Decoder configure information
+ * @brief  Decoder configuration
  */
 typedef struct {
     esp_h264_raw_format_t pic_type;  /*<! Data format after decoding */

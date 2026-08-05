@@ -26,9 +26,9 @@ typedef esp_h264_enc_cfg_t esp_h264_enc_cfg_sw_t;
 
 /**
  * @brief  This function is used to create a new instance of the `esp_h264_enc_t` data structure,
- *         which represents a single-streams H.264 encoder in software. The encoder is from openh264
+ *         which represents a single-stream H.264 encoder in software. The encoder is from openh264
  *
- * @note  The group of picture(GOP) will be updated in intra frame
+ * @note  The group of pictures (GOP) will be updated in intra frame
  *
  * @param[in]   cfg      It is a pointer to the `esp_h264_enc_cfg_sw_t` structure, which contains the configuration settings for the encoder
  * @param[out]  out_enc  It is a double pointer to the `esp_h264_enc_t` structure, which will store the created encoder instance

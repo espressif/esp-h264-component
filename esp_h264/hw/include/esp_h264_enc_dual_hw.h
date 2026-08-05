@@ -23,7 +23,7 @@ typedef struct {
 
 /**
  * @brief  This function is used to create a new instance of the `esp_h264_enc_dual_hw_t` data structure,
- *         which represents a dual-streams H.264 encoder in hardware
+ *         which represents a dual-stream H.264 encoder in hardware
  *
  * @note  The dual streams must have the same GOP (Group of Pictures) setting
  *        The encoder's GOP is calculated as the average of the first stream's GOP and the second stream's GOP
