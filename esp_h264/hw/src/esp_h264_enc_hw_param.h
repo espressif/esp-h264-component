@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include "sdkconfig.h"
 #include "esp_h264_enc_param_hw.h"
 #include "h264_hal.h"
@@ -76,6 +77,17 @@ esp_h264_err_t esp_h264_enc_hw_del_param(esp_h264_enc_param_hw_handle_t handle);
  *       - ESP_H264_ERR_OK  Succeeded
  */
 esp_h264_err_t esp_h264_enc_hw_get_mutex(esp_h264_enc_param_hw_handle_t handle, esp_h264_mutex_t *out_mutex);
+
+/**
+ * @brief  Take and clear the pending force-IDR request
+ *
+ * @param[in]  handle  Hardware H.264 encoder parameter set handle
+ *
+ * @return
+ *       - true   Force IDR was requested
+ *       - false  No pending force-IDR request
+ */
+bool esp_h264_enc_hw_take_force_idr(esp_h264_enc_param_hw_handle_t handle);
 
 /**
  * @brief  Get the inital quantization parameter(QP)

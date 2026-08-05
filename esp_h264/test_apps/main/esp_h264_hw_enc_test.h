@@ -81,6 +81,32 @@ esp_h264_err_t single_hw_enc_open_time_test(esp_h264_enc_cfg_hw_t cfg);
 esp_h264_err_t dual_hw_enc_open_time_test(esp_h264_enc_cfg_dual_hw_t cfg);
 
 /**
+ * @brief Verify `esp_h264_enc_force_idr` makes the next single-HW frame an IDR
+ *
+ * Encodes a few frames with GOP > 1, then forces IDR mid-GOP and checks frame_type.
+ *
+ * @param  cfg  The configuration of single hardware encoder
+ *
+ * @return
+ *       - ESP_H264_ERR_OK   Succeeded
+ *       - ESP_H264_ERR_FAIL Forced IDR did not produce an IDR frame
+ *       - other            Encoder errors
+ */
+esp_h264_err_t single_hw_enc_force_idr_test(esp_h264_enc_cfg_hw_t cfg);
+
+/**
+ * @brief Verify `esp_h264_enc_force_idr` on dual HW encoder
+ *
+ * @param  cfg  The configuration of dual hardware encoder
+ *
+ * @return
+ *       - ESP_H264_ERR_OK   Succeeded
+ *       - ESP_H264_ERR_FAIL Forced IDR did not produce an IDR frame
+ *       - other            Encoder errors
+ */
+esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg);
+
+/**
  * @brief Single hardware oneencoding. And this case add set/get base paramter function test than `single_hw_enc_process` in one thread.
  *        The set/get paramter function can be call in one thread or asynchronous thread.
  *

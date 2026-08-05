@@ -496,6 +496,244 @@ esp_h264_err_t dual_hw_enc_open_time_test(esp_h264_enc_cfg_dual_hw_t cfg)
     return ESP_H264_ERR_OK;
 }
 
+esp_h264_err_t single_hw_enc_force_idr_test(esp_h264_enc_cfg_hw_t cfg)
+{
+    esp_h264_enc_in_frame_t in_frame = {0};
+    esp_h264_enc_out_frame_t out_frame = {0};
+    esp_h264_err_t ret = ESP_H264_ERR_OK;
+    esp_h264_enc_handle_t enc = NULL;
+    esp_h264_enc_param_hw_handle_t param_hd = NULL;
+    uint16_t width = ((cfg.res.width + 15) >> 4 << 4);
+    uint16_t height = ((cfg.res.height + 15) >> 4 << 4);
+
+    in_frame.raw_data.len = (int)((float)width * height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    if (!in_frame.raw_data.buffer) {
+        printf("mem allocation failed. line %d\n", __LINE__);
+        goto _exit_;
+    }
+    out_frame.raw_data.len = in_frame.raw_data.len;
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    if (!out_frame.raw_data.buffer) {
+        printf("mem allocation failed. line %d\n", __LINE__);
+        goto _exit_;
+    }
+
+    ret = esp_h264_enc_hw_new(&cfg, &enc);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("new failed. line %d\n", __LINE__);
+        goto _exit_;
+    }
+    ret = esp_h264_enc_hw_get_param_hd(enc, &param_hd);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("get_param_hd failed. line %d\n", __LINE__);
+        goto _exit_;
+    }
+    ret = esp_h264_enc_open(enc);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("open failed. line %d\n", __LINE__);
+        goto _exit_;
+    }
+
+    /* Frame 0: natural GOP IDR */
+    if (read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type) <= 0) {
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+    ret = esp_h264_enc_process(enc, &in_frame, &out_frame);
+    if (ret != ESP_H264_ERR_OK || out_frame.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        printf("frame0 expect IDR got %d ret %d. line %d\n", out_frame.frame_type, ret, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+
+    /* Frame 1: P within GOP */
+    if (read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type) <= 0) {
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+    ret = esp_h264_enc_process(enc, &in_frame, &out_frame);
+    if (ret != ESP_H264_ERR_OK || out_frame.frame_type != ESP_H264_FRAME_TYPE_P) {
+        printf("frame1 expect P got %d ret %d. line %d\n", out_frame.frame_type, ret, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+
+    /* Force IDR mid-GOP */
+    ret = esp_h264_enc_force_idr(&param_hd->base);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("force_idr failed. line %d\n", __LINE__);
+        goto _exit_;
+    }
+    if (read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type) <= 0) {
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+    ret = esp_h264_enc_process(enc, &in_frame, &out_frame);
+    if (ret != ESP_H264_ERR_OK || out_frame.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        printf("forced frame expect IDR got %d ret %d. line %d\n", out_frame.frame_type, ret, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+
+    /* Next frame after forced IDR should be P again */
+    if (read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type) <= 0) {
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+    ret = esp_h264_enc_process(enc, &in_frame, &out_frame);
+    if (ret != ESP_H264_ERR_OK || out_frame.frame_type != ESP_H264_FRAME_TYPE_P) {
+        printf("post-force frame expect P got %d ret %d. line %d\n", out_frame.frame_type, ret, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_;
+    }
+
+_exit_:
+    if (enc) {
+        esp_h264_err_t close_ret = esp_h264_enc_close(enc);
+        esp_h264_err_t del_ret = esp_h264_enc_del(enc);
+        if (ret == ESP_H264_ERR_OK) {
+            ret = (close_ret != ESP_H264_ERR_OK) ? close_ret : del_ret;
+        }
+    }
+    if (in_frame.raw_data.buffer) {
+        esp_h264_free(in_frame.raw_data.buffer);
+    }
+    if (out_frame.raw_data.buffer) {
+        esp_h264_free(out_frame.raw_data.buffer);
+    }
+    return ret;
+}
+
+esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg)
+{
+    esp_h264_enc_in_frame_t *in_frame[2] = {NULL, NULL};
+    esp_h264_enc_out_frame_t *out_frame[2] = {NULL, NULL};
+    esp_h264_err_t ret = ESP_H264_ERR_OK;
+    esp_h264_enc_dual_handle_t enc = NULL;
+    esp_h264_enc_param_hw_handle_t param_hd0 = NULL;
+    int16_t width[2] = { ((cfg.cfg0.res.width + 15) >> 4 << 4), ((cfg.cfg1.res.width + 15) >> 4 << 4)};
+    int16_t height[2] = { ((cfg.cfg0.res.height + 15) >> 4 << 4), ((cfg.cfg1.res.height + 15) >> 4 << 4)};
+    int32_t out_length[2];
+
+    out_length[0] = width[0] * height[0] * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg0.pic_type);
+    out_length[1] = width[1] * height[1] * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg1.pic_type);
+    for (int16_t i = 0; i < 2; i++) {
+        in_frame[i] = heap_caps_calloc(1, sizeof(esp_h264_enc_in_frame_t), ESP_H264_MEM_INTERNAL);
+        out_frame[i] = heap_caps_calloc(1, sizeof(esp_h264_enc_out_frame_t), ESP_H264_MEM_INTERNAL);
+        if (!in_frame[i] || !out_frame[i]) {
+            printf("mem allocation failed. line %d\n", __LINE__);
+            ret = ESP_H264_ERR_MEM;
+            goto _exit_dual_;
+        }
+        in_frame[i]->raw_data.len = out_length[i];
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.len = out_length[i];
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        if (!in_frame[i]->raw_data.buffer || !out_frame[i]->raw_data.buffer) {
+            printf("mem allocation failed. line %d\n", __LINE__);
+            ret = ESP_H264_ERR_MEM;
+            goto _exit_dual_;
+        }
+    }
+
+    ret = esp_h264_enc_dual_hw_new(&cfg, &enc);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("dual new failed. line %d\n", __LINE__);
+        goto _exit_dual_;
+    }
+    ret = esp_h264_enc_dual_hw_get_param_hd0(enc, &param_hd0);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("get_param_hd0 failed. line %d\n", __LINE__);
+        goto _exit_dual_;
+    }
+    ret = esp_h264_enc_dual_open(enc);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("dual open failed. line %d\n", __LINE__);
+        goto _exit_dual_;
+    }
+
+    for (int16_t i = 0; i < 2; i++) {
+        esp_h264_enc_cfg_hw_t cfg_tmp = (i == 0) ? cfg.cfg0 : cfg.cfg1;
+        if (read_enc_cb(in_frame[i], width[i], height[i], cfg_tmp.pic_type) <= 0) {
+            ret = ESP_H264_ERR_FAIL;
+            goto _exit_dual_;
+        }
+    }
+    ret = esp_h264_enc_dual_process(enc, in_frame, out_frame);
+    if (ret != ESP_H264_ERR_OK
+            || out_frame[0]->frame_type != ESP_H264_FRAME_TYPE_IDR
+            || out_frame[1]->frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        printf("dual frame0 expect IDR got %d/%d. line %d\n",
+               out_frame[0]->frame_type, out_frame[1]->frame_type, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_dual_;
+    }
+
+    for (int16_t i = 0; i < 2; i++) {
+        esp_h264_enc_cfg_hw_t cfg_tmp = (i == 0) ? cfg.cfg0 : cfg.cfg1;
+        if (read_enc_cb(in_frame[i], width[i], height[i], cfg_tmp.pic_type) <= 0) {
+            ret = ESP_H264_ERR_FAIL;
+            goto _exit_dual_;
+        }
+    }
+    ret = esp_h264_enc_dual_process(enc, in_frame, out_frame);
+    if (ret != ESP_H264_ERR_OK
+            || out_frame[0]->frame_type != ESP_H264_FRAME_TYPE_P
+            || out_frame[1]->frame_type != ESP_H264_FRAME_TYPE_P) {
+        printf("dual frame1 expect P got %d/%d. line %d\n",
+               out_frame[0]->frame_type, out_frame[1]->frame_type, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_dual_;
+    }
+
+    ret = esp_h264_enc_force_idr(&param_hd0->base);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("dual force_idr failed. line %d\n", __LINE__);
+        goto _exit_dual_;
+    }
+    for (int16_t i = 0; i < 2; i++) {
+        esp_h264_enc_cfg_hw_t cfg_tmp = (i == 0) ? cfg.cfg0 : cfg.cfg1;
+        if (read_enc_cb(in_frame[i], width[i], height[i], cfg_tmp.pic_type) <= 0) {
+            ret = ESP_H264_ERR_FAIL;
+            goto _exit_dual_;
+        }
+    }
+    ret = esp_h264_enc_dual_process(enc, in_frame, out_frame);
+    if (ret != ESP_H264_ERR_OK
+            || out_frame[0]->frame_type != ESP_H264_FRAME_TYPE_IDR
+            || out_frame[1]->frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        printf("dual forced frame expect IDR got %d/%d. line %d\n",
+               out_frame[0]->frame_type, out_frame[1]->frame_type, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_dual_;
+    }
+
+_exit_dual_:
+    if (enc) {
+        esp_h264_err_t close_ret = esp_h264_enc_dual_close(enc);
+        esp_h264_err_t del_ret = esp_h264_enc_dual_del(enc);
+        if (ret == ESP_H264_ERR_OK) {
+            ret = (close_ret != ESP_H264_ERR_OK) ? close_ret : del_ret;
+        }
+    }
+    for (int16_t i = 0; i < 2; i++) {
+        if (in_frame[i]) {
+            if (in_frame[i]->raw_data.buffer) {
+                esp_h264_free(in_frame[i]->raw_data.buffer);
+            }
+            esp_h264_free(in_frame[i]);
+        }
+        if (out_frame[i]) {
+            if (out_frame[i]->raw_data.buffer) {
+                esp_h264_free(out_frame[i]->raw_data.buffer);
+            }
+            esp_h264_free(out_frame[i]);
+        }
+    }
+    return ret;
+}
+
 /** GOP FPS RC */
 esp_h264_err_t single_hw_enc_thread_test(esp_h264_enc_cfg_hw_t cfg)
 {

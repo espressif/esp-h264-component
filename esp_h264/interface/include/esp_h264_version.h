@@ -22,6 +22,7 @@ extern "C" {
  *            - Support dynamic changes about bit rate, frame rate, GOP , QP .ect.
  *            - Support single and dual stream encoder
  *            - Support de-blocking filter, ROI, MV function
+ *            - Support forcing the next frame to IDR via `esp_h264_enc_force_idr` without changing the configured GOP
  *            - Support SPS and PPS encoding
  *     software encoder
  *            - Support baseline profile (max frame size is 36864 macro-block)
@@ -62,6 +63,7 @@ extern "C" {
  *     - Signaled frame rate in HW encoder SPS via VUI `timing_info` (`num_units_in_tick`, `time_scale`, `fixed_frame_rate_flag`), so fps can be recovered as `time_scale / (2 * num_units_in_tick)`
  *     - Added `esp_h264_aligned_malloc` and `esp_h264_malloc_prefer` for non-zeroing allocation
  *     - Used malloc for large HW encoder reference and deblocking buffers to reduce `new` latency
+ *     - Added `esp_h264_enc_force_idr` to force the next encoded frame to be an IDR (HW), without changing the configured GOP
  */
 
 /**

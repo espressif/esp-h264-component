@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "esp_h264_alloc.h"
 #include "esp_h264_enc_hw_param.h"
 
@@ -20,6 +21,7 @@ typedef struct esp_h264_param {
     esp_h264_set_dev_t         device;
     uint8_t                    fps;
     uint8_t                    gop;
+    bool                       force_idr;
     esp_h264_rc_hd_t           rc_hd;
     uint8_t                    qp_init;
     uint32_t                   bitrate;
@@ -147,6 +149,16 @@ static esp_h264_err_t get_bitrate(esp_h264_enc_param_handle_t handle, uint32_t *
     esp_h264_enc_param_hw_handle_t param_base = __containerof(handle, esp_h264_enc_param_hw_t, base);
     esp_h264_param_t *param = __containerof(param_base, esp_h264_param_t, hw_base);
     *bitrate = param->bitrate;
+    return ESP_H264_ERR_OK;
+}
+
+static esp_h264_err_t force_idr(esp_h264_enc_param_handle_t handle)
+{
+    esp_h264_enc_param_hw_handle_t param_base = __containerof(handle, esp_h264_enc_param_hw_t, base);
+    esp_h264_param_t *param = __containerof(param_base, esp_h264_param_t, hw_base);
+    esp_h264_mutex_lock(param->mutex, ESP_H264_MAX_DELAY);
+    param->force_idr = true;
+    esp_h264_mutex_unlock(param->mutex);
     return ESP_H264_ERR_OK;
 }
 
@@ -396,6 +408,7 @@ esp_h264_err_t esp_h264_enc_hw_new_param(esp_h264_enc_hw_param_cfg_t *cfg, esp_h
     param->hw_base.base.get_gop = get_gop;
     param->hw_base.base.set_bitrate = set_bitrate;
     param->hw_base.base.get_bitrate = get_bitrate;
+    param->hw_base.base.force_idr = force_idr;
     param->hw_base.cfg_mv = cfg_mv;
     param->hw_base.get_mv_cfg_info = get_mv_cfg_info;
     param->hw_base.set_mv_pkt = set_mv_pkt;
@@ -417,6 +430,16 @@ esp_h264_err_t esp_h264_enc_hw_get_mutex(esp_h264_enc_param_hw_handle_t handle, 
     esp_h264_param_t *param = __containerof(handle, esp_h264_param_t, hw_base);
     *out_mutex = param->mutex;
     return ESP_H264_ERR_OK;
+}
+
+bool esp_h264_enc_hw_take_force_idr(esp_h264_enc_param_hw_handle_t handle)
+{
+    esp_h264_param_t *param = __containerof(handle, esp_h264_param_t, hw_base);
+    esp_h264_mutex_lock(param->mutex, ESP_H264_MAX_DELAY);
+    bool force = param->force_idr;
+    param->force_idr = false;
+    esp_h264_mutex_unlock(param->mutex);
+    return force;
 }
 
 esp_h264_err_t esp_h264_enc_hw_get_qp_init(esp_h264_enc_param_hw_handle_t handle, uint8_t *out_qp_init)
