@@ -1,6 +1,6 @@
 # Changelog
 
-## unrelease
+## 1.3.7
 
 ### Features
 
@@ -12,6 +12,7 @@
 ### Fixes
 
 - Fixed `CLIP3` argument order in HW rate control so `eqp` is clamped to [-5, 5] correctly (avoids RC oscillation)
+- Fixed spelling and grammar in public headers and README
 
 ## 1.3.6
 

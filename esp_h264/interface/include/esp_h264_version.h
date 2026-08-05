@@ -10,16 +10,16 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.3.6"
+#define ESP_H264_VERSION "1.3.7"
 
 /**
  *  Features:
  *     - H264 hardware encoder
  *            - Support baseline profile (max frame size is 36864 macro-block)
- *            - Support a variety of widths in range[80, 1088] and heights in range [80, 2048]
+ *            - Support a variety of widths in range [80, 1920] and heights in range [80, 2032]
  *            - Support quality first rate control
  *            - Support YUV420 UYVY BGR888 RGB565_LE VUY raw data
- *            - Support dynamic changes about bit rate, frame rate, GOP , QP .ect.
+ *            - Support dynamic changes about bit rate, frame rate, GOP, QP, etc.
  *            - Support single and dual stream encoder
  *            - Support de-blocking filter, ROI, MV function
  *            - Support forcing the next frame to IDR via `esp_h264_enc_force_idr` without changing the configured GOP
@@ -59,11 +59,13 @@ extern "C" {
  *     - Supported IDF6.0
  *     - Supported ESP32-S31
  *     - Fixed excessive internal buffer allocation in the decoder
- *     unrelease:
+ *     v1.3.7:
  *     - Signaled frame rate in HW encoder SPS via VUI `timing_info` (`num_units_in_tick`, `time_scale`, `fixed_frame_rate_flag`), so fps can be recovered as `time_scale / (2 * num_units_in_tick)`
  *     - Added `esp_h264_aligned_malloc` and `esp_h264_malloc_prefer` for non-zeroing allocation
  *     - Used malloc for large HW encoder reference and deblocking buffers to reduce `new` latency
  *     - Added `esp_h264_enc_force_idr` to force the next encoded frame to be an IDR (HW), without changing the configured GOP
+ *     - Fixed `CLIP3` argument order in HW rate control so `eqp` is clamped to [-5, 5] correctly
+ *     - Fixed spelling and grammar in public headers and README
  */
 
 /**

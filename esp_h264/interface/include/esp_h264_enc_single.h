@@ -43,21 +43,23 @@ typedef struct esp_h264_enc_if {
 esp_h264_err_t esp_h264_enc_open(esp_h264_enc_handle_t enc);
 
 /**
- * @brief  This function performs single encoding of H.264 video frames.
- *         To encode one image using an image encoder, the IDR frame will automatically add SPS and PPS NALU.
+ * @brief  Encode one H.264 video frame in a single stream.
+ *         For an IDR frame, the encoder automatically prepends SPS and PPS NALUs.
  *
- * @note  The function will return ESP_H264_ERR_TIMEOUT if `out_frame.raw_data.len` is less than actual encoded data length using hardware encoder.
- *        If the width or height of image is not multi of 16, please do the follow operation.
+ * @note  Returns ESP_H264_ERR_TIMEOUT if `out_frame.raw_data.len` is smaller than the actual
+ *        encoded data length when using the hardware encoder.
+ *        If the image width or height is not a multiple of 16, align them as follows:
  *        `width = ((width +15) >> 4 << 4);`
  *        `height = ((height+15) >> 4 << 4);`
  *        `in_frame.raw_data.len = ( width * height + (width * height >> 1));`
  *        `in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, MALLOC_CAP_DEFAULT);`
- *        The `out_frame.raw_data.buffer` should be allocated by the user for in_frame.raw_data.len bytes to avoid the encoded image size exceeding the `out_frame.raw_data.buffer` size.
- *        If the encoder image size is larger than `out_frame.raw_data.buffer`, it will result in ESP_H264_ERR_MEM.
+ *        Allocate `out_frame.raw_data.buffer` with at least `in_frame.raw_data.len` bytes so the
+ *        encoded bitstream does not exceed the output buffer. If the encoded size is larger than
+ *        the output buffer, the function returns ESP_H264_ERR_MEM.
  *
- * @param[in]      enc        A pointer to the H.264 encoder instance
- * @param[in]      in_frame   A pointer to unencoded input frame
- * @param[in/out]  out_frame  A pointer to encoded output frame
+ * @param[in]      enc        Pointer to the H.264 encoder instance
+ * @param[in]      in_frame   Pointer to the unencoded input frame
+ * @param[in/out]  out_frame  Pointer to the encoded output frame
  *
  * @return
  *       - ESP_H264_ERR_OK           Succeeded
@@ -65,9 +67,8 @@ esp_h264_err_t esp_h264_enc_open(esp_h264_enc_handle_t enc);
  *       - ESP_H264_ERR_MEM          Insufficient memory
  *       - ESP_H264_ERR_FAIL         Failed
  *       - ESP_H264_ERR_TIMEOUT      Timeout
- *       - ESP_H264_ERR_OVERFLOW     The size of encoder image is greater than `in_frame.raw_data.len`
+ *       - ESP_H264_ERR_OVERFLOW     Encoded image size is greater than `out_frame.raw_data.len`
  *       - ESP_H264_ERR_UNSUPPORTED  Process feature is not supported by the encoder
- *
  */
 esp_h264_err_t esp_h264_enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_frame_t *in_frame, esp_h264_enc_out_frame_t *out_frame);
 

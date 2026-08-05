@@ -25,7 +25,7 @@ typedef enum {
     ESP_H264_ERR_FAIL           = -1,  /*<! Failed */
     ESP_H264_ERR_ARG            = -2,  /*<! Invalid arguments */
     ESP_H264_ERR_MEM            = -3,  /*<! Insufficient memory */
-    ESP_H264_ERR_UNSUPPORTED    = -5,  /*<! Un-supported */
+    ESP_H264_ERR_UNSUPPORTED    = -5,  /*<! Unsupported */
     ESP_H264_ERR_TIMEOUT        = -6,  /*<! Timeout */
     ESP_H264_ERR_OVERFLOW       = -7,  /*<! Buffer overflow */
 } esp_h264_err_t;
@@ -37,19 +37,19 @@ typedef enum {
  *        |-------------------------------|--------------|--------------|--------------|
  *        | enum                          |  SW encoder  |  HW encoder  | SW decoder   |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_BGR888       |  un-supported|  supported   | un-supported |
+ *        | ESP_H264_RAW_FMT_BGR888       |  unsupported|  supported   | unsupported |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_RGB565_LE    |  un-supported|  supported   | un-supported |
+ *        | ESP_H264_RAW_FMT_RGB565_LE    |  unsupported|  supported   | unsupported |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_VUY          |  un-supported|  supported   | un-supported |
+ *        | ESP_H264_RAW_FMT_VUY          |  unsupported|  supported   | unsupported |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_UYVY         |  un-supported|  supported   | un-supported |
+ *        | ESP_H264_RAW_FMT_UYVY         |  unsupported|  supported   | unsupported |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_YUYV         |  supported   | un-supported | un-supported |
+ *        | ESP_H264_RAW_FMT_YUYV         |  supported   | unsupported | unsupported |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_I420         |  supported   | un-supported |  supported   |
+ *        | ESP_H264_RAW_FMT_I420         |  supported   | unsupported |  supported   |
  *        |-------------------------------|--------------|--------------|--------------|
- *        | ESP_H264_RAW_FMT_O_UYY_E_VYY  | un-supported |  supported   | un-supported |
+ *        | ESP_H264_RAW_FMT_O_UYY_E_VYY  | unsupported |  supported   | unsupported |
  *        |-------------------------------|--------------|--------------|--------------|
  */
 typedef enum {
@@ -57,9 +57,9 @@ typedef enum {
     ESP_H264_RAW_FMT_RGB565_LE   = ESP_H264_4CC('R', 'G', 'B', 'L'),  /*<! RGB565 little endian */
     ESP_H264_RAW_FMT_VUY         = ESP_H264_4CC('Y', '3', '0', '8'),  /*<! VUY */
     ESP_H264_RAW_FMT_UYVY        = ESP_H264_4CC('U', 'Y', 'V', 'Y'),  /*<! UYVY */
-    ESP_H264_RAW_FMT_YUYV        = ESP_H264_4CC('Y', 'U', 'Y', 'V'),  /*<! The storage format is YUV422 packet. The data order is Y U Y V... for per line */
-    ESP_H264_RAW_FMT_I420        = ESP_H264_4CC('Y', 'U', '1', '2'),  /*<! The storage format is YUV420 planar（IYUV). The data order is to store all Y first, then all U, and finally all V */
-    ESP_H264_RAW_FMT_O_UYY_E_VYY = ESP_H264_4CC('O', 'U', 'E', 'V'),  /*<! The storage format is YUV420 packet, the data order is as follows
+    ESP_H264_RAW_FMT_YUYV        = ESP_H264_4CC('Y', 'U', 'Y', 'V'),  /*<! The storage format is YUV422 packed. The data order is Y U Y V... per line */
+    ESP_H264_RAW_FMT_I420        = ESP_H264_4CC('Y', 'U', '1', '2'),  /*<! The storage format is YUV420 planar(IYUV). The data order is to store all Y first, then all U, and finally all V */
+    ESP_H264_RAW_FMT_O_UYY_E_VYY = ESP_H264_4CC('O', 'U', 'E', 'V'),  /*<! The storage format is YUV420 packed, the data order is as follows
                                                                            |-------------|-------------------------------|
                                                                            | line number |         data order            |
                                                                            |-------------|-------------------------------|
@@ -81,15 +81,12 @@ typedef enum {
  */
 typedef enum {
     ESP_H264_FRAME_TYPE_INVALID = -1,  /*<! Encoder not ready or parameters are invalid */
-    ESP_H264_FRAME_TYPE_IDR     = 0,   /*<! Instantaneous decoding refresh (IDR) frame
-                                            IDR frames are essentially I-frames and use intra-frame prediction.
-                                            IDR frames refresh immediately
-                                            So IDR frames assume the random access function, a new IDR frame starts,
-                                            can recalculate a new GOP start encoding, the player can always play from an IDR frame,
-                                            because after it, no frame references the previous frame.
-                                            If there is no IDR frame in a video, the video cannot be accessed randomly. */
-    ESP_H264_FRAME_TYPE_I       = 1,   /*<! Intra frame(I frame) type. If output frame type is this,
-                                            it means this frame is I-frame except IDR frame. */
+    ESP_H264_FRAME_TYPE_IDR     = 0,   /*<! Instantaneous Decoder Refresh (IDR) frame.
+                                            An IDR frame is an I-frame that resets decoding: no later frame may
+                                            reference any frame before it, so playback and a new GOP can start here.
+                                            Without IDR frames, the stream cannot be randomly accessed. */
+    ESP_H264_FRAME_TYPE_I       = 1,   /*<! Intra frame (I-frame). If the output frame type is this,
+                                            the frame is an I-frame other than an IDR frame. */
     ESP_H264_FRAME_TYPE_P       = 2,   /*<! Predicted frame (P-frame) type */
 } esp_h264_frame_type_t;
 
@@ -98,7 +95,7 @@ typedef enum {
  */
 typedef struct {
     uint8_t *buffer;  /*<! Data buffer */
-    uint32_t len;     /*<! It is buffer length in bytes */
+    uint32_t len;     /*<! Buffer length in bytes */
 } esp_h264_pkt_t;
 
 /**
@@ -137,26 +134,25 @@ typedef struct {
                             Under normal circumstances, the compression rate of H.264 can exceed 100 times.
                             Therefore, the recommended value is `width` * `height` * `pixel` / `compression ratio`.
                             For network transmission, a smaller value is recommended when the network environment is poor.*/
-    uint8_t  qp_min;   /*<! Minimum range for quantization parameter(QP). The range is [0, 51].
-                            Smaller QP values reduce the compression ratio, increasing video quality.*/
-    uint8_t  qp_max;   /*<! Maximum range for quantization parameter(QP). The range is [0, 51].
-                            Larger QP values increase compression.
-                            It must be greater than or equal to `qp_min`.*/
+    uint8_t  qp_min;   /*<! Minimum quantization parameter (QP). The range is [0, 51].
+                            Smaller QP values reduce compression and increase video quality. */
+    uint8_t  qp_max;   /*<! Maximum quantization parameter (QP). The range is [0, 51].
+                            Larger QP values increase compression and decrease video quality.
+                            It must be greater than or equal to `qp_min`. */
 } esp_h264_enc_rc_t;
 
 /**
- * @brief  Encoder configure information
+ * @brief  Encoder configuration
  */
 typedef struct {
-    esp_h264_raw_format_t pic_type;  /*<! Un-encoding data format */
-    uint8_t               gop;       /*<! Period of Intra frame
-                                          GOP is usually set to the number of frames per second(FPS) output by the encoder,
-                                          that is, the FPS, which is generally 25 or 30, but other values can also be set. */
-    uint8_t               fps;       /*<! Maximum input frames per second
-                                          The higher the FPS, the more coherent and realistic the video.
-                                          24 FPS is standard for videos to appear coherent.
-                                          30 FPS is standard for video games to appear coherent.
-                                          FPS greater than 75 are generally imperceptible.*/
+    esp_h264_raw_format_t pic_type;  /*<! Unencoded data format */
+    uint8_t               gop;       /*<! Period of Intra frame.
+                                          GOP is usually set to the encoder output FPS,
+                                          commonly 25 or 30, but other values can also be used. */
+    uint8_t               fps;       /*<! Maximum input frames per second.
+                                          Higher FPS makes the video look more coherent and realistic.
+                                          About 24 FPS is typical for general video; about 30 FPS for games.
+                                          Gains above about 75 FPS are generally imperceptible. */
     esp_h264_resolution_t res;       /*<! Picture resolution */
     esp_h264_enc_rc_t     rc;        /*<! RC parameter */
 } esp_h264_enc_cfg_t;
@@ -167,17 +163,15 @@ typedef struct {
 typedef struct {
     esp_h264_frame_type_t frame_type;  /*<! Frame type */
     esp_h264_pkt_t        raw_data;    /*<! Encoded data stream  */
-    uint32_t              length;      /*<! Actual length of encoder data in bytes */
-    uint32_t              dts;         /*<! Decoding time stamp(DTS)
-                                            The timestamp of the decoder when decoding relative to SCR(system reference time).
-                                            It mainly identifies when the bit stream read into memory begins to be sent to the decoder for decoding.*/
-    uint32_t              pts;         /*<! Presentation time stamp(PTS). The timestamp relative to the SCR when the frame is displayed.
-                                            It mainly measures when the decoded video is displayed.
-                                            It is time scale. PTS plus time base is actual time.
-                                            Commonly time base in TS stream is {1, 90000}.  So PTS unit is 1/90000 second.
-                                            If time base is millisecond, PTS unit is 1 / 1000 second .
-                                            If H.264 encode data has only I-frame and P-frame, the DTS is equal to PTS.
- */
+    uint32_t              length;      /*<! Actual length of encoded data in bytes */
+    uint32_t              dts;         /*<! Decoding time stamp (DTS) relative to SCR (system clock reference).
+                                            It indicates when the bitstream in memory starts being sent to the decoder. */
+    uint32_t              pts;         /*<! Presentation time stamp (PTS). Timestamp relative to the SCR when the frame is displayed.
+                                            It indicates when the decoded video is shown.
+                                            PTS is a time-scale value; multiply by the time base to get real time.
+                                            A common TS time base is {1, 90000}, so the PTS unit is 1/90000 second.
+                                            If the time base is milliseconds, the PTS unit is 1/1000 second.
+                                            If the H.264 bitstream has only I-frames and P-frames, DTS equals PTS. */
 } esp_h264_enc_out_frame_t;
 
 /**
@@ -202,7 +196,7 @@ typedef struct {
                                             It mainly measures when the decoded video is displayed.
                                             It is time scale. PTS plus time base is actual time.
                                             Commonly time base in TS stream is {1, 90000}.  So PTS unit is 1/90000 second.
-                                            If time base is millisecond, PTS unit is 1 / 1000 second .
+                                            If time base is milliseconds, the PTS unit is 1/1000 second.
                                             If H.264 encode data has only I-frame and P-frame, the DTS is equal to PTS. */
 } esp_h264_dec_out_frame_t;
 
@@ -234,7 +228,7 @@ typedef struct {
                                           It mainly measures when the decoded video is displayed.
                                           It is time scale. PTS plus time base is actual time.
                                           Commonly time base in TS stream is {1, 90000}.  So PTS unit is 1/90000 second.
-                                          If time base is millisecond, PTS unit is 1 / 1000 second.
+                                          If time base is milliseconds, the PTS unit is 1/1000 second.
                                           If H.264 encode data has only I-frame and P-frame, the DTS is equal to PTS.
  */
 } esp_h264_dec_in_frame_t;
