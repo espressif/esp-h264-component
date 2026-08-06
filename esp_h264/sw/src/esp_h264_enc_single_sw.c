@@ -77,10 +77,10 @@ static void fill_enc_param(SEncParamExt *sParam, const esp_h264_enc_cfg_sw_t *cf
     sParam->sSpatialLayers[0].iDLayerQp = (sParam->iMaxQp + sParam->iMinQp) >> 1;
 }
 
-static esp_h264_err_t esp_h264_enc_hw_res_check(int width, int height)
+static esp_h264_err_t esp_h264_enc_sw_res_check(int width, int height)
 {
-    if ((width > ESP_H264_SW_MIN_WIDTH)
-            && (height > ESP_H264_SW_MIN_HEIGHT)) {
+    if ((width >= ESP_H264_SW_MIN_WIDTH)
+            && (height >= ESP_H264_SW_MIN_HEIGHT)) {
         return ESP_H264_ERR_OK;
     }
     return ESP_H264_ERR_FAIL;
@@ -185,7 +185,7 @@ esp_h264_err_t esp_h264_enc_sw_new(const esp_h264_enc_cfg_sw_t *cfg, esp_h264_en
     ESP_H264_RET_ON_FALSE(cfg && out_enc, ESP_H264_ERR_ARG, TAG, "Invalid h264 configure and handle parameter");
     ESP_H264_RET_ON_FALSE((cfg->pic_type == ESP_H264_RAW_FMT_YUYV) || (cfg->pic_type == ESP_H264_RAW_FMT_I420), ESP_H264_ERR_ARG, TAG, "Un-supported h264 picture type parameter");
     ESP_H264_RET_ON_FALSE((cfg->rc.qp_max >= cfg->rc.qp_min) && (cfg->rc.qp_max <= ESP_H264_QP_MAX), ESP_H264_ERR_ARG, TAG, "Invalid h264 QP parameter");
-    ESP_H264_RET_ON_FALSE((esp_h264_enc_hw_res_check(cfg->res.width, cfg->res.height) == ESP_H264_ERR_OK), ESP_H264_ERR_ARG, TAG, "Invalid h264 resolution parameter");
+    ESP_H264_RET_ON_FALSE((esp_h264_enc_sw_res_check(cfg->res.width, cfg->res.height) == ESP_H264_ERR_OK), ESP_H264_ERR_ARG, TAG, "Invalid h264 resolution parameter");
     ESP_H264_RET_ON_FALSE((cfg->fps > 0) && (cfg->gop > 0), ESP_H264_ERR_ARG, TAG, "Invalid h264 FPS and GOP parameter");
 
     *out_enc = NULL;
@@ -194,7 +194,11 @@ esp_h264_err_t esp_h264_enc_sw_new(const esp_h264_enc_cfg_sw_t *cfg, esp_h264_en
     uint32_t actual_size;
     esp_h264_enc_sw_handle_t *sw_hd = (esp_h264_enc_sw_handle_t *)esp_h264_calloc_prefer(1, sizeof(esp_h264_enc_sw_handle_t), &actual_size, ESP_H264_MEM_SPIRAM, ESP_H264_MEM_INTERNAL);
     ESP_H264_RET_ON_FALSE(sw_hd != NULL, ESP_H264_ERR_MEM, TAG, "No memory for the handle");
-    WelsCreateSVCEncoder(&sw_hd->pPtrEnc);
+    if (WelsCreateSVCEncoder(&sw_hd->pPtrEnc) != 0 || sw_hd->pPtrEnc == NULL) {
+        esp_h264_free(sw_hd);
+        ESP_H264_LOGE(TAG, "Failed to create openh264 encoder");
+        return ESP_H264_ERR_FAIL;
+    }
 
     /* Parameter initalization */
     esp_h264_err_t ret = ESP_H264_ERR_OK;
