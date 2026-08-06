@@ -6,10 +6,38 @@
 
 #pragma once
 #if CONFIG_IDF_TARGET_ESP32P4
+#include <stdbool.h>
+#include <stddef.h>
 #include "esp_h264_enc_single_hw.h"
 #include "esp_h264_enc_single.h"
 #include "esp_h264_enc_dual_hw.h"
 #include "esp_h264_enc_dual.h"
+
+/**
+ * @brief  Parse the encoded fps out of a Baseline SPS's VUI `timing_info`
+ *         (fps = time_scale / (2 * num_units_in_tick)); transparently strips
+ *         Annex-B emulation_prevention_three_byte before parsing.
+ *
+ * @param  nal        Buffer starting at (or before) the SPS NAL, may include the start code
+ * @param  nal_bytes  Length of `nal`, in bytes
+ *
+ * @return parsed fps on success, 0 on failure (not a Baseline SPS, no VUI timing_info, etc.)
+ */
+uint8_t esp_h264_test_parse_sps_vui_fps(const uint8_t *nal, size_t nal_bytes);
+
+/**
+ * @brief  Scan an Annex-B byte stream (one or more back-to-back NAL units) for any
+ *         un-escaped forbidden byte sequence (0x000000 / 0x000001 / 0x000002 / 0x000003)
+ *         occurring inside a NAL unit's payload, i.e. anywhere other than a legitimate
+ *         start code (H.264 7.4.1.1).
+ *
+ * @param  buf         Buffer holding one or more complete Annex-B NAL units back-to-back
+ * @param  len         Length of `buf`, in bytes
+ * @param  out_offset  Optional; on a forbidden sequence, set to its byte offset in `buf`
+ *
+ * @return true if a forbidden (non-conformant) sequence was found, false if the stream is clean
+ */
+bool esp_h264_test_annexb_has_forbidden_sequence(const uint8_t *buf, size_t len, size_t *out_offset);
 
 /**
  * @brief Single hardware encoding. It is simple test case. And do the follow opertion.

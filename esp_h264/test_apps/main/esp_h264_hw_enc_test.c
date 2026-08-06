@@ -62,6 +62,27 @@ static uint32_t sps_bs_read_ue(sps_bs_t *bs)
 }
 
 /**
+ * @brief  Strip Annex-B `emulation_prevention_three_byte` (0x03) values, i.e.
+ *         convert EBSP back to RBSP, exactly as a conformant decoder does
+ *         before parsing any syntax element (H.264 7.3.1 / 7.4.1.1).
+ */
+static size_t strip_emulation_prevention(const uint8_t *src, size_t src_len, uint8_t *dst, size_t dst_cap)
+{
+    size_t out_len = 0;
+    int zero_run = 0;
+    for (size_t i = 0; i < src_len && out_len < dst_cap; i++) {
+        uint8_t b = src[i];
+        if (zero_run >= 2 && b == 0x03) {
+            zero_run = 0;
+            continue;
+        }
+        dst[out_len++] = b;
+        zero_run = (b == 0) ? (zero_run + 1) : 0;
+    }
+    return out_len;
+}
+
+/**
  * Parse fps from Baseline SPS VUI timing_info:
  * fps = time_scale / (2 * num_units_in_tick)
  *
@@ -80,9 +101,14 @@ static uint8_t parse_sps_vui_timing_fps(const uint8_t *nal, size_t nal_bytes)
         off = 3;
     }
 
+    /* De-escape into a scratch RBSP buffer before parsing; the SPS RBSP itself
+     * is always small (well under 256 bytes even with VUI timing info). */
+    uint8_t rbsp[256];
+    size_t rbsp_len = strip_emulation_prevention(nal + off, nal_bytes - off, rbsp, sizeof(rbsp));
+
     sps_bs_t bs = {
-        .data = nal + off,
-        .size = nal_bytes - off,
+        .data = rbsp,
+        .size = rbsp_len,
         .bit_pos = 0,
     };
 
@@ -166,6 +192,61 @@ static uint8_t parse_sps_vui_timing_fps(const uint8_t *nal, size_t nal_bytes)
         return 0;
     }
     return (uint8_t)fps;
+}
+
+uint8_t esp_h264_test_parse_sps_vui_fps(const uint8_t *nal, size_t nal_bytes)
+{
+    return parse_sps_vui_timing_fps(nal, nal_bytes);
+}
+
+bool esp_h264_test_annexb_has_forbidden_sequence(const uint8_t *buf, size_t len, size_t *out_offset)
+{
+    size_t i = 0;
+    while (i < len) {
+        size_t sc_len = 0;
+        if (i + 4 <= len && buf[i] == 0 && buf[i + 1] == 0 && buf[i + 2] == 0 && buf[i + 3] == 1) {
+            sc_len = 4;
+        } else if (i + 3 <= len && buf[i] == 0 && buf[i + 1] == 0 && buf[i + 2] == 1) {
+            sc_len = 3;
+        } else {
+            /* Not aligned on a start code: the stream itself is malformed. */
+            if (out_offset) {
+                *out_offset = i;
+            }
+            return true;
+        }
+        size_t nal_start = i + sc_len;
+        size_t nal_end = len;
+        for (size_t j = nal_start; j + 2 < len; j++) {
+            bool is_3byte_sc = buf[j] == 0 && buf[j + 1] == 0 && buf[j + 2] == 1;
+            bool is_4byte_sc = (j + 3 < len) && buf[j] == 0 && buf[j + 1] == 0 && buf[j + 2] == 0 && buf[j + 3] == 1;
+            if (is_3byte_sc || is_4byte_sc) {
+                nal_end = j;
+                break;
+            }
+        }
+        /* Mirror a real decoder's de-escaping: after two zero bytes, a 0x03 is the
+         * legitimate emulation_prevention_three_byte and is consumed (not a violation);
+         * 0x00-0x02 in that position means the encoder failed to escape it. */
+        int zero_run = 0;
+        for (size_t k = nal_start; k < nal_end; k++) {
+            uint8_t b = buf[k];
+            if (zero_run >= 2) {
+                if (b <= 2) {
+                    if (out_offset) {
+                        *out_offset = k;
+                    }
+                    return true;
+                } else if (b == 3) {
+                    zero_run = 0;
+                    continue;
+                }
+            }
+            zero_run = (b == 0) ? (zero_run + 1) : 0;
+        }
+        i = nal_end;
+    }
+    return false;
 }
 
 static esp_h264_err_t check_out_frame_sps_fps(const esp_h264_enc_out_frame_t *out_frame, uint8_t expect_fps)

@@ -9,6 +9,8 @@
 #include "esp_h264_hw_enc_test.h"
 #include "esp_h264_sw_enc_test.h"
 #include "esp_h264_sw_dec_test.h"
+#include "esp_h264_alloc.h"
+#include "h264_io.h"
 
 static int16_t res_width = 128;
 static int16_t res_height = 128;
@@ -815,10 +817,23 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
     cfg_dual.cfg1.fps = 30;
 
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_new(&cfg_dual, &enc_dual));
+
+    /* get_param_hd0: enc is NULL */
     esp_h264_enc_param_hw_handle_t param_hd0 = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_get_param_hd0(NULL, &param_hd0));
+
+    /* get_param_hd0: out_param is NULL */
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_get_param_hd0(enc_dual, NULL));
+
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_get_param_hd0(enc_dual, &param_hd0));
 
+    /* get_param_hd1: enc is NULL */
     esp_h264_enc_param_hw_handle_t param_hd1 = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_get_param_hd1(NULL, &param_hd1));
+
+    /* get_param_hd1: out_param is NULL */
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_hw_get_param_hd1(enc_dual, NULL));
+
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_get_param_hd1(enc_dual, &param_hd1));
 
     /* enc is NULL */
@@ -891,6 +906,616 @@ TEST_CASE("hw_enc_error_test", "[esp_h264]")
 
     /* delete enc */
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_del(enc_dual));
+}
+
+/** The first frame is always IDR, so the encoder must prepend SPS+PPS. If the caller's
+ *  output buffer is too small for SPS+PPS, `esp_h264_enc_process` must fail with
+ *  ESP_H264_ERR_MEM instead of overflowing the buffer, and `out_frame.length` must be 0. */
+TEST_CASE("hw_enc_single_hw_out_buf_too_small_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_hw_t cfg = { 0 };
+    cfg.gop = 5;
+    cfg.fps = 30;
+    cfg.res.width = res_width;
+    cfg.res.height = res_height;
+    cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
+    cfg.rc.qp_min = 26;
+    cfg.rc.qp_max = 26;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    esp_h264_enc_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+    esp_h264_enc_in_frame_t in_frame = { 0 };
+    uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.len = in_len;
+    TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
+
+    /* Real buffer is large enough to avoid any out-of-bounds write; only the declared
+     * `raw_data.len` is set too small so the SPS/PPS size check is what triggers the error. */
+    esp_h264_enc_out_frame_t out_frame = { 0 };
+    uint32_t out_actual_size = 0;
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+    out_frame.raw_data.len = 4;
+
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_MEM, esp_h264_enc_process(enc, &in_frame, &out_frame));
+    TEST_ASSERT_EQUAL(0, out_frame.length);
+
+    esp_h264_free(in_frame.raw_data.buffer);
+    esp_h264_free(out_frame.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+}
+
+/** Same as above but for the dual encoder: when stream0's output buffer is too small,
+ *  stream1 must be skipped entirely (its `length` cleared to 0) rather than encoded with
+ *  stream0 left in a half-finished state. */
+TEST_CASE("hw_enc_dual_hw_out_buf_too_small_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_dual_hw_t cfg = { 0 };
+    cfg.cfg0.gop = 5;
+    cfg.cfg0.fps = 30;
+    cfg.cfg0.res.width = res_width;
+    cfg.cfg0.res.height = res_height;
+    cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
+    cfg.cfg0.rc.qp_min = 26;
+    cfg.cfg0.rc.qp_max = 26;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    cfg.cfg1.gop = 5;
+    cfg.cfg1.fps = 30;
+    cfg.cfg1.res.width = res_width1;
+    cfg.cfg1.res.height = res_height1;
+    cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
+    cfg.cfg1.rc.qp_min = 26;
+    cfg.cfg1.rc.qp_max = 26;
+    cfg.cfg1.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    esp_h264_enc_dual_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_open(enc));
+
+    esp_h264_enc_in_frame_t in_frame0 = { 0 };
+    uint32_t in_len0 = (uint32_t)((float)cfg.cfg0.res.width * cfg.cfg0.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg0.pic_type));
+    in_frame0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, MALLOC_CAP_INTERNAL);
+    in_frame0.raw_data.len = in_len0;
+    TEST_ASSERT_NOT_NULL(in_frame0.raw_data.buffer);
+
+    esp_h264_enc_in_frame_t in_frame1 = { 0 };
+    uint32_t in_len1 = (uint32_t)((float)cfg.cfg1.res.width * cfg.cfg1.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg1.pic_type));
+    in_frame1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, MALLOC_CAP_INTERNAL);
+    in_frame1.raw_data.len = in_len1;
+    TEST_ASSERT_NOT_NULL(in_frame1.raw_data.buffer);
+
+    uint32_t out_actual_size = 0;
+    esp_h264_enc_out_frame_t out_frame0 = { 0 };
+    out_frame0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(out_frame0.raw_data.buffer);
+
+    esp_h264_enc_out_frame_t out_frame1 = { 0 };
+    out_frame1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(out_frame1.raw_data.buffer);
+
+    esp_h264_enc_in_frame_t *in_frame_dual[2] = { &in_frame0, &in_frame1 };
+    esp_h264_enc_out_frame_t *out_frame_dual[2] = { &out_frame0, &out_frame1 };
+
+    /* stream0's buffer is too small: stream1 must not be touched */
+    out_frame0.raw_data.len = 4;
+    out_frame1.raw_data.len = out_actual_size;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_MEM, esp_h264_enc_dual_process(enc, in_frame_dual, out_frame_dual));
+    TEST_ASSERT_EQUAL(0, out_frame0.length);
+    TEST_ASSERT_EQUAL(0, out_frame1.length);
+
+    /* stream0's buffer is fine, stream1's is too small: stream0's result must stand */
+    out_frame0.raw_data.len = out_actual_size;
+    out_frame1.raw_data.len = 4;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_MEM, esp_h264_enc_dual_process(enc, in_frame_dual, out_frame_dual));
+    TEST_ASSERT_GREATER_THAN(0, out_frame0.length);
+    TEST_ASSERT_EQUAL(0, out_frame1.length);
+
+    esp_h264_free(in_frame0.raw_data.buffer);
+    esp_h264_free(in_frame1.raw_data.buffer);
+    esp_h264_free(out_frame0.raw_data.buffer);
+    esp_h264_free(out_frame1.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_del(enc));
+}
+
+/* Round-trip test: feed every HW-encoded frame straight into the independent SW (tinyh264)
+ * decoder. This is the strongest available check that the HW encoder produces a
+ * spec-compliant bitstream (correct SPS/PPS, level_idc, slice headers, AUD, etc.), since
+ * a real 3rd-party decoder implementation must be able to parse it without errors. */
+TEST_CASE("hw_enc_sw_dec_roundtrip_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_hw_t enc_cfg = { 0 };
+    enc_cfg.gop = 4;
+    enc_cfg.fps = 30;
+    enc_cfg.res.width = res_width;
+    enc_cfg.res.height = res_height;
+    enc_cfg.rc.bitrate = enc_cfg.res.width * enc_cfg.res.height * enc_cfg.fps / 10;
+    enc_cfg.rc.qp_min = 15;
+    enc_cfg.rc.qp_max = 30;
+    enc_cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    esp_h264_enc_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&enc_cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+    esp_h264_dec_cfg_sw_t dec_cfg = { 0 };
+    dec_cfg.pic_type = ESP_H264_RAW_FMT_I420;
+    esp_h264_dec_handle_t dec = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_new(&dec_cfg, &dec));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_open(dec));
+
+    esp_h264_enc_in_frame_t in_frame = { 0 };
+    uint32_t in_len = (uint32_t)((float)enc_cfg.res.width * enc_cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(enc_cfg.pic_type));
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.len = in_len;
+    TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
+
+    esp_h264_enc_out_frame_t out_frame = { 0 };
+    uint32_t out_buf_len = in_len;
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.len = out_buf_len;
+    TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+
+    uint32_t expect_dec_size = (uint32_t)enc_cfg.res.width * enc_cfg.res.height
+                                + ((uint32_t)enc_cfg.res.width * enc_cfg.res.height >> 1);
+    int frame_count = 0;
+    int decoded_pic_count = 0;
+
+    while (1) {
+        int ret_w = read_enc_cb(&in_frame, enc_cfg.res.width, enc_cfg.res.height, enc_cfg.pic_type);
+        if (ret_w <= 0) {
+            break;
+        }
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+        TEST_ASSERT_GREATER_THAN(0, out_frame.length);
+        if (frame_count == 0) {
+            TEST_ASSERT_EQUAL(ESP_H264_FRAME_TYPE_IDR, out_frame.frame_type);
+        }
+
+        /* Feed the just-encoded bitstream straight into the SW decoder, one NAL unit at a time */
+        esp_h264_dec_in_frame_t dec_in = { 0 };
+        dec_in.raw_data.buffer = out_frame.raw_data.buffer;
+        dec_in.raw_data.len = out_frame.length;
+        while (dec_in.raw_data.len > 0) {
+            esp_h264_dec_out_frame_t dec_out = { 0 };
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_process(dec, &dec_in, &dec_out));
+            TEST_ASSERT_GREATER_THAN(0, dec_in.consume);
+            dec_in.raw_data.buffer += dec_in.consume;
+            dec_in.raw_data.len -= dec_in.consume;
+            if (dec_out.out_size > 0) {
+                TEST_ASSERT_EQUAL(expect_dec_size, dec_out.out_size);
+                decoded_pic_count++;
+            }
+        }
+        frame_count++;
+    }
+    /* Sanity: the input pattern must have produced more than one frame, so both an IDR and
+     * at least one P frame went through the encode->decode round trip. */
+    TEST_ASSERT_GREATER_THAN(1, frame_count);
+    /* Every encoded access unit must decode into exactly one displayable picture: nothing
+     * dropped, nothing stuck waiting for more data. */
+    TEST_ASSERT_EQUAL(frame_count, decoded_pic_count);
+
+    esp_h264_resolution_t dec_res = { 0 };
+    esp_h264_dec_param_sw_handle_t dec_param_hd = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_get_param_hd(dec, &dec_param_hd));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_get_resolution(dec_param_hd, &dec_res));
+    TEST_ASSERT_EQUAL(enc_cfg.res.width, dec_res.width);
+    TEST_ASSERT_EQUAL(enc_cfg.res.height, dec_res.height);
+
+    esp_h264_free(in_frame.raw_data.buffer);
+    esp_h264_free(out_frame.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_close(dec));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_del(dec));
+}
+
+/* Same round-trip idea as `hw_enc_sw_dec_roundtrip_test`, but swept across several
+ * resolutions (min/typical/max-ish, all MB-aligned) and GOP sizes: for every combination,
+ * each individual encoded frame must be immediately decodable by the SW decoder, and IDR
+ * frames must land exactly on GOP boundaries. */
+TEST_CASE("hw_enc_sw_dec_roundtrip_multi_res_gop_test", "[esp_h264]")
+{
+    typedef struct {
+        uint16_t width;
+        uint16_t height;
+    } res_case_t;
+    const res_case_t resolutions[] = {
+        { 80, 80 },     /* ESP_H264_MIN_WIDTH/HEIGHT */
+        { 160, 128 },
+        { 320, 240 },
+        { 640, 480 },
+    };
+    const uint8_t gops[] = { 1, 5, 15 };
+
+    for (size_t ri = 0; ri < sizeof(resolutions) / sizeof(resolutions[0]); ri++) {
+        for (size_t gi = 0; gi < sizeof(gops) / sizeof(gops[0]); gi++) {
+            uint16_t width = resolutions[ri].width;
+            uint16_t height = resolutions[ri].height;
+            uint8_t gop = gops[gi];
+
+            esp_h264_enc_cfg_hw_t enc_cfg = { 0 };
+            enc_cfg.gop = gop;
+            enc_cfg.fps = 30;
+            enc_cfg.res.width = width;
+            enc_cfg.res.height = height;
+            enc_cfg.rc.bitrate = (uint32_t)width * height * enc_cfg.fps / 10;
+            enc_cfg.rc.qp_min = 15;
+            enc_cfg.rc.qp_max = 30;
+            enc_cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+            esp_h264_enc_handle_t enc = NULL;
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&enc_cfg, &enc));
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+            esp_h264_dec_cfg_sw_t dec_cfg = { 0 };
+            dec_cfg.pic_type = ESP_H264_RAW_FMT_I420;
+            esp_h264_dec_handle_t dec = NULL;
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_new(&dec_cfg, &dec));
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_open(dec));
+
+            /* PSRAM for all sizes here: keeps this test independent of internal-RAM budget
+             * regardless of which resolution is currently under test. */
+            esp_h264_enc_in_frame_t in_frame = { 0 };
+            uint32_t in_len = (uint32_t)((float)width * height * ESP_H264_GET_BPP_BY_PIC_TYPE(enc_cfg.pic_type));
+            in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, ESP_H264_MEM_SPIRAM);
+            in_frame.raw_data.len = in_len;
+            TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
+
+            esp_h264_enc_out_frame_t out_frame = { 0 };
+            uint32_t out_buf_len = in_len;
+            out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, ESP_H264_MEM_SPIRAM);
+            out_frame.raw_data.len = out_buf_len;
+            TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+
+            uint32_t expect_dec_size = (uint32_t)width * height + ((uint32_t)width * height >> 1);
+            /* Run past at least one full GOP boundary: IDR, gop-1 P frames, next IDR. */
+            int frames_to_run = gop + 2;
+
+            for (int f = 0; f < frames_to_run; f++) {
+                int ret_w = read_enc_cb(&in_frame, width, height, enc_cfg.pic_type);
+                if (ret_w <= 0) {
+                    /* Hit the shared color-table wraparound (index_c resets internally); retry once. */
+                    ret_w = read_enc_cb(&in_frame, width, height, enc_cfg.pic_type);
+                }
+                TEST_ASSERT_GREATER_THAN(0, ret_w);
+
+                TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+                TEST_ASSERT_GREATER_THAN(0, out_frame.length);
+                esp_h264_frame_type_t expect_type = ((f % gop) == 0) ? ESP_H264_FRAME_TYPE_IDR : ESP_H264_FRAME_TYPE_P;
+                TEST_ASSERT_EQUAL(expect_type, out_frame.frame_type);
+
+                /* The point of this test: encode exactly one frame, decode it immediately. */
+                esp_h264_dec_in_frame_t dec_in = { 0 };
+                dec_in.raw_data.buffer = out_frame.raw_data.buffer;
+                dec_in.raw_data.len = out_frame.length;
+                int decoded_this_frame = 0;
+                while (dec_in.raw_data.len > 0) {
+                    esp_h264_dec_out_frame_t dec_out = { 0 };
+                    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_process(dec, &dec_in, &dec_out));
+                    TEST_ASSERT_GREATER_THAN(0, dec_in.consume);
+                    dec_in.raw_data.buffer += dec_in.consume;
+                    dec_in.raw_data.len -= dec_in.consume;
+                    if (dec_out.out_size > 0) {
+                        TEST_ASSERT_EQUAL(expect_dec_size, dec_out.out_size);
+                        decoded_this_frame++;
+                    }
+                }
+                TEST_ASSERT_EQUAL(1, decoded_this_frame);
+            }
+
+            esp_h264_free(in_frame.raw_data.buffer);
+            esp_h264_free(out_frame.raw_data.buffer);
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_close(dec));
+            TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_del(dec));
+        }
+    }
+}
+
+/* Regression test for the Annex-B `emulation_prevention_three_byte` fix: scan every
+ * encoded access unit (IDR with SPS/PPS/slice, and plain P slices) for any forbidden,
+ * un-escaped byte sequence. This directly validates the bit-writer's escaping logic
+ * without depending on a 3rd-party decoder. */
+TEST_CASE("hw_enc_annexb_no_forbidden_sequence_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_hw_t cfg = { 0 };
+    cfg.gop = 4;
+    cfg.fps = 30;
+    cfg.res.width = res_width;
+    cfg.res.height = res_height;
+    cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 10;
+    cfg.rc.qp_min = 15;
+    cfg.rc.qp_max = 30;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    esp_h264_enc_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+    esp_h264_enc_in_frame_t in_frame = { 0 };
+    uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.len = in_len;
+    TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
+
+    esp_h264_enc_out_frame_t out_frame = { 0 };
+    uint32_t out_buf_len = in_len;
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.len = out_buf_len;
+    TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+
+    int frame_count = 0;
+    while (frame_count < cfg.gop * 3) {
+        int ret_w = read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type);
+        if (ret_w <= 0) {
+            break;
+        }
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+        TEST_ASSERT_GREATER_THAN(0, out_frame.length);
+        size_t bad_off = 0;
+        bool has_forbidden = esp_h264_test_annexb_has_forbidden_sequence(out_frame.raw_data.buffer, out_frame.length, &bad_off);
+        if (has_forbidden) {
+            printf("forbidden seq at frame %d (type %d), offset %u of %u\n",
+                   frame_count, out_frame.frame_type, (unsigned)bad_off, (unsigned)out_frame.length);
+        }
+        TEST_ASSERT_FALSE(has_forbidden);
+        frame_count++;
+    }
+    /* Sanity: must have covered at least one full GOP (IDR + several P frames). */
+    TEST_ASSERT_GREATER_THAN(1, frame_count);
+
+    esp_h264_free(in_frame.raw_data.buffer);
+    esp_h264_free(out_frame.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+}
+
+/* Regression test for the `set_fps` fix: it must regenerate the full SPS+PPS blob
+ * (not just the fps field) since the SPS length itself can change with VUI timing_info,
+ * and the *next* IDR frame must embed the newly configured fps. */
+TEST_CASE("hw_enc_set_fps_regenerates_sps_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_hw_t cfg = { 0 };
+    cfg.gop = 10;
+    cfg.fps = 15;
+    cfg.res.width = res_width;
+    cfg.res.height = res_height;
+    cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
+    cfg.rc.qp_min = 26;
+    cfg.rc.qp_max = 26;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    esp_h264_enc_handle_t enc = NULL;
+    esp_h264_enc_param_hw_handle_t param_hd = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_get_param_hd(enc, &param_hd));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+    esp_h264_enc_in_frame_t in_frame = { 0 };
+    uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.len = in_len;
+    TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
+
+    esp_h264_enc_out_frame_t out_frame = { 0 };
+    uint32_t out_buf_len = in_len;
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.len = out_buf_len;
+    TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+
+    /* Frame 0: natural IDR, SPS must embed the fps configured at open() time. */
+    TEST_ASSERT_GREATER_THAN(0, read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+    TEST_ASSERT_EQUAL(ESP_H264_FRAME_TYPE_IDR, out_frame.frame_type);
+    TEST_ASSERT_EQUAL(cfg.fps, esp_h264_test_parse_sps_vui_fps(out_frame.raw_data.buffer, out_frame.length));
+
+    /* Change fps, then force an IDR: the *new* SPS must reflect the updated fps. */
+    const uint8_t new_fps = 24;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_set_fps(&param_hd->base, new_fps));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_force_idr(&param_hd->base));
+    TEST_ASSERT_GREATER_THAN(0, read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+    TEST_ASSERT_EQUAL(ESP_H264_FRAME_TYPE_IDR, out_frame.frame_type);
+    TEST_ASSERT_EQUAL(new_fps, esp_h264_test_parse_sps_vui_fps(out_frame.raw_data.buffer, out_frame.length));
+
+    uint8_t readback_fps = 0;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_get_fps(&param_hd->base, &readback_fps));
+    TEST_ASSERT_EQUAL(new_fps, readback_fps);
+
+    esp_h264_free(in_frame.raw_data.buffer);
+    esp_h264_free(out_frame.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+}
+
+/* Rigorous regression test for the overflow-handling design decision: `ESP_H264_ERR_OVERFLOW`
+ * does not force the next frame back to IDR (frame_num is not reset), on the theory that the
+ * HW's internal reconstructed-picture pipeline still completed the whole frame -- only the
+ * *compressed output* was truncated because the caller's buffer was too small. A frame-type
+ * check alone cannot prove that theory; it only proves software bookkeeping wasn't reset.
+ * This test additionally proves it functionally: encode IDR(0) -> P(1, forced overflow, and
+ * this data is discarded, as any real caller must do since it's an incomplete/truncated NAL)
+ * -> P(2, normal buffer). If the encoder's internal reference for frame 2 really is frame 1's
+ * *complete* reconstruction (as the design assumes), then an independent decoder that only
+ * ever saw frame 0 has no way to correctly reconstruct frame 2 (its reference is stale), so
+ * decoding frame 2 right after frame 0 (skipping frame 1) must NOT be silently treated as
+ * "successfully decoded a correct picture" -- it must either fail, or decode into a wrong
+ * (unverifiable) picture. Either way, this documents that a caller who receives
+ * ESP_H264_ERR_OVERFLOW cannot just skip that frame and resume: it must request/force an IDR
+ * on its own next frame to resynchronize any downstream decoder. */
+TEST_CASE("hw_enc_overflow_does_not_force_idr_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_hw_t cfg = { 0 };
+    cfg.gop = 30;
+    cfg.fps = 30;
+    /* The shared 128x128 test pattern is a flat solid color: even at QP=1 it compresses to
+     * well under 128 bytes, so a much larger resolution is used here purely to guarantee
+     * enough macroblocks that the compressed frame exceeds a small output buffer. */
+    cfg.res.width = 640;
+    cfg.res.height = 480;
+    cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 2;
+    /* Lowest QP => max detail/bitrate, to make the compressed frames as large as possible. */
+    cfg.rc.qp_min = 1;
+    cfg.rc.qp_max = 1;
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+
+    esp_h264_enc_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+    esp_h264_dec_cfg_sw_t dec_cfg = { 0 };
+    dec_cfg.pic_type = ESP_H264_RAW_FMT_I420;
+    esp_h264_dec_handle_t dec = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_new(&dec_cfg, &dec));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_open(dec));
+
+    /* 640x480 input/output frames are too big to comfortably fit internal RAM alongside
+     * everything else on this target, so use PSRAM for these (P4 DMA can access PSRAM). */
+    esp_h264_enc_in_frame_t in_frame = { 0 };
+    uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, ESP_H264_MEM_SPIRAM);
+    in_frame.raw_data.len = in_len;
+    TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
+
+    /* Normal, generously-sized buffer for frames that must succeed. */
+    esp_h264_enc_out_frame_t out_frame = { 0 };
+    uint32_t out_full_size = 0;
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &out_full_size, ESP_H264_MEM_SPIRAM);
+    TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+    out_frame.raw_data.len = out_full_size;
+
+    /* Frame 0: IDR with a normal buffer -- must succeed, and establishes both the HW
+     * encoder's *and* the independent SW decoder's reference picture in sync. */
+    TEST_ASSERT_GREATER_THAN(0, read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+    TEST_ASSERT_EQUAL(ESP_H264_FRAME_TYPE_IDR, out_frame.frame_type);
+    esp_h264_dec_in_frame_t dec_in0 = { 0 };
+    dec_in0.raw_data.buffer = out_frame.raw_data.buffer;
+    dec_in0.raw_data.len = out_frame.length;
+    uint32_t expect_dec_size = (uint32_t)cfg.res.width * cfg.res.height + ((uint32_t)cfg.res.width * cfg.res.height >> 1);
+    int decoded0 = 0;
+    while (dec_in0.raw_data.len > 0) {
+        esp_h264_dec_out_frame_t dec_out = { 0 };
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_process(dec, &dec_in0, &dec_out));
+        TEST_ASSERT_GREATER_THAN(0, dec_in0.consume);
+        dec_in0.raw_data.buffer += dec_in0.consume;
+        dec_in0.raw_data.len -= dec_in0.consume;
+        if (dec_out.out_size > 0) {
+            TEST_ASSERT_EQUAL(expect_dec_size, dec_out.out_size);
+            decoded0++;
+        }
+    }
+    TEST_ASSERT_EQUAL(1, decoded0);
+
+    /* Frame 1: P frame, but with a deliberately undersized buffer (measured empirically: these
+     * P frames run ~1.4KB at QP=1). The shortfall must be *gentle* (buffer close to, but below,
+     * the real size) -- a severely undersized buffer stalls the HW DMA pipeline entirely (no
+     * forward progress possible) until the driver's timeout fires, which is reported as
+     * ESP_H264_ERR_MEM/TIMEOUT rather than ESP_H264_ERR_OVERFLOW. This frame's data is
+     * truncated/incomplete and MUST be discarded by any real caller -- it is intentionally NOT
+     * fed to the decoder. */
+    uint32_t small_actual_size = 0;
+    uint8_t *small_buf = esp_h264_aligned_calloc(16, 1, 1200, &small_actual_size, ESP_H264_MEM_SPIRAM);
+    TEST_ASSERT_NOT_NULL(small_buf);
+    esp_h264_free(out_frame.raw_data.buffer);
+    out_frame.raw_data.buffer = small_buf;
+    out_frame.raw_data.len = small_actual_size;
+
+    TEST_ASSERT_GREATER_THAN(0, read_enc_cb(&in_frame, cfg.res.width, cfg.res.height, cfg.pic_type));
+    /* Save frame 1's exact source content (color "B"): frame 2 below is made pixel-identical
+     * to it on purpose (see comment there for why). */
+    uint32_t frame1_copy_size = in_len;
+    uint8_t *frame1_src_copy = esp_h264_aligned_calloc(16, 1, in_len, &frame1_copy_size, ESP_H264_MEM_SPIRAM);
+    TEST_ASSERT_NOT_NULL(frame1_src_copy);
+    memcpy(frame1_src_copy, in_frame.raw_data.buffer, in_len);
+    uint8_t color_b_y = frame1_src_copy[1];
+
+    esp_h264_err_t overflow_ret = esp_h264_enc_process(enc, &in_frame, &out_frame);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OVERFLOW, overflow_ret);
+
+    /* Frame 2: give the encoder a properly-sized buffer again. It must be a plain P frame
+     * (frame_num was not reset by the overflow), per the current design. */
+    esp_h264_free(out_frame.raw_data.buffer);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &out_full_size, ESP_H264_MEM_SPIRAM);
+    TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
+    out_frame.raw_data.len = out_full_size;
+
+    /* Frame 2 is made pixel-identical to frame 1's *source* (color B), instead of calling
+     * read_enc_cb again for a fresh (different) color. This is deliberate: a full-frame color
+     * change is cheap for the encoder to intra-code from scratch (measured empirically: doing
+     * so decodes correctly even against a stale reference, since it does not actually depend
+     * on any reference frame -- that is not a meaningful test of inter-frame dependency). By
+     * contrast, encoding *unchanged* content against a real, valid reference (frame 1, which
+     * the encoder's internal HW state has -- but the external decoder never received) is the
+     * textbook case where the encoder is expected to emit cheap SKIP/near-zero-residual P
+     * macroblocks that are only correct when decoded against that same reference. If frame 1
+     * was properly and fully reconstructed by the HW (as the "no forced IDR" design assumes),
+     * decoding frame 2 against the *decoder's* stale frame-0 reference must reproduce
+     * frame 0's color, not color B -- proving the two are now desynced. */
+    memcpy(in_frame.raw_data.buffer, frame1_src_copy, in_len);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &in_frame, &out_frame));
+    TEST_ASSERT_EQUAL(ESP_H264_FRAME_TYPE_P, out_frame.frame_type);
+    printf("frame 2 (identical content to frame 1) encoded size: %u bytes\n", (unsigned)out_frame.length);
+
+    /* The crux of the rigor requested: decode frame 2 with a decoder whose reference is still
+     * frame 0 (frame 1 was never delivered to it, exactly as a real caller who discards an
+     * ESP_H264_ERR_OVERFLOW frame would do, since a truncated NAL cannot be decoded at all).
+     * A frame-type check alone only proves the HW's *own* frame_num bookkeeping wasn't reset;
+     * it says nothing about whether an external decoder can still track the bitstream. */
+    esp_h264_dec_in_frame_t dec_in2 = { 0 };
+    dec_in2.raw_data.buffer = out_frame.raw_data.buffer;
+    dec_in2.raw_data.len = out_frame.length;
+    esp_h264_err_t dec_ret2 = ESP_H264_ERR_OK;
+    bool got_full_size_picture = false;
+    uint8_t decoded_y2 = 0;
+    while (dec_in2.raw_data.len > 0) {
+        esp_h264_dec_out_frame_t dec_out = { 0 };
+        dec_ret2 = esp_h264_dec_process(dec, &dec_in2, &dec_out);
+        if (dec_ret2 != ESP_H264_ERR_OK) {
+            break;
+        }
+        TEST_ASSERT_GREATER_THAN(0, dec_in2.consume);
+        dec_in2.raw_data.buffer += dec_in2.consume;
+        dec_in2.raw_data.len -= dec_in2.consume;
+        if (dec_out.out_size == expect_dec_size && dec_out.outbuf != NULL) {
+            got_full_size_picture = true;
+            decoded_y2 = dec_out.outbuf[0];
+        }
+    }
+    int delta_from_true_content = abs((int)decoded_y2 - (int)color_b_y);
+    printf("post-overflow P-frame decode: dec_ret=%d got_pic=%d true_color_b_y=%u decoded_y=%u "
+           "delta_from_true=%d\n",
+           dec_ret2, (int)got_full_size_picture, color_b_y, decoded_y2, delta_from_true_content);
+    /* Either the decoder fails outright on the desynced stream, or -- if it "succeeds" -- the
+     * reconstructed content must visibly diverge from the true (color B) source, because the
+     * decoder's actual reference (frame 0) differs from the encoder's actual reference
+     * (frame 1). A close match here would mean the reference desync went completely
+     * unnoticed downstream, which is the unsafe condition this test exists to catch. */
+    bool falsely_looks_correct = dec_ret2 == ESP_H264_ERR_OK && got_full_size_picture
+                                  && delta_from_true_content <= 8;
+    TEST_ASSERT_FALSE_MESSAGE(falsely_looks_correct,
+                               "A decoder that never saw the overflowed frame must not silently "
+                               "reproduce the correct pixel content from the next P frame -- this "
+                               "would mean overflow-induced frame loss goes undetected downstream. "
+                               "Callers must force an IDR after ESP_H264_ERR_OVERFLOW to resync any "
+                               "real decoder, even though the HW driver itself does not.");
+    esp_h264_free(frame1_src_copy);
+
+    esp_h264_free(in_frame.raw_data.buffer);
+    esp_h264_free(out_frame.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_close(dec));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_del(dec));
 }
 #endif //CONFIG_IDF_TARGET_ESP32P4
 
@@ -1227,4 +1852,36 @@ TEST_CASE("sw_enc_error_test", "[esp_h264]")
     TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_del(NULL));
 
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+}
+
+/** ESP_H264_SW_MIN_WIDTH/HEIGHT are both 16, and the resolution check must accept the
+ *  minimum value itself, not only strictly-greater values. This only exercises
+ *  `esp_h264_enc_sw_new`'s resolution validation, not the full encode pipeline, so it
+ *  isn't sensitive to output-buffer sizing at such a tiny resolution. */
+TEST_CASE("sw_enc_min_resolution_boundary_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_sw_t cfg = { 0 };
+    cfg.gop = 5;
+    cfg.fps = 30;
+    cfg.rc.qp_min = 26;
+    cfg.rc.qp_max = 26;
+    cfg.pic_type = ESP_H264_RAW_FMT_I420;
+
+    /* width == ESP_H264_SW_MIN_WIDTH, height == ESP_H264_SW_MIN_HEIGHT: must succeed */
+    esp_h264_enc_handle_t enc = NULL;
+    cfg.res.width = 16;
+    cfg.res.height = 16;
+    cfg.rc.bitrate = cfg.res.width * cfg.res.height * cfg.fps / 20;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_sw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+
+    /* width == ESP_H264_SW_MIN_WIDTH - 1: must still fail */
+    cfg.res.width = 15;
+    cfg.res.height = 16;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_sw_new(&cfg, &enc));
+
+    /* height == ESP_H264_SW_MIN_HEIGHT - 1: must still fail */
+    cfg.res.width = 16;
+    cfg.res.height = 15;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_sw_new(&cfg, &enc));
 }
