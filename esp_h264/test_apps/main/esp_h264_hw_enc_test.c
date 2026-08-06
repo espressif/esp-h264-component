@@ -693,6 +693,7 @@ esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg)
     esp_h264_err_t ret = ESP_H264_ERR_OK;
     esp_h264_enc_dual_handle_t enc = NULL;
     esp_h264_enc_param_hw_handle_t param_hd0 = NULL;
+    esp_h264_enc_param_hw_handle_t param_hd1 = NULL;
     int16_t width[2] = { ((cfg.cfg0.res.width + 15) >> 4 << 4), ((cfg.cfg1.res.width + 15) >> 4 << 4)};
     int16_t height[2] = { ((cfg.cfg0.res.height + 15) >> 4 << 4), ((cfg.cfg1.res.height + 15) >> 4 << 4)};
     int32_t out_length[2];
@@ -726,6 +727,11 @@ esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg)
     ret = esp_h264_enc_dual_hw_get_param_hd0(enc, &param_hd0);
     if (ret != ESP_H264_ERR_OK) {
         printf("get_param_hd0 failed. line %d\n", __LINE__);
+        goto _exit_dual_;
+    }
+    ret = esp_h264_enc_dual_hw_get_param_hd1(enc, &param_hd1);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("get_param_hd1 failed. line %d\n", __LINE__);
         goto _exit_dual_;
     }
     ret = esp_h264_enc_dual_open(enc);
@@ -770,7 +776,12 @@ esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg)
 
     ret = esp_h264_enc_force_idr(&param_hd0->base);
     if (ret != ESP_H264_ERR_OK) {
-        printf("dual force_idr failed. line %d\n", __LINE__);
+        printf("dual force_idr stream0 failed. line %d\n", __LINE__);
+        goto _exit_dual_;
+    }
+    ret = esp_h264_enc_force_idr(&param_hd1->base);
+    if (ret != ESP_H264_ERR_OK) {
+        printf("dual force_idr stream1 failed. line %d\n", __LINE__);
         goto _exit_dual_;
     }
     for (int16_t i = 0; i < 2; i++) {
@@ -785,6 +796,25 @@ esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg)
             || out_frame[0]->frame_type != ESP_H264_FRAME_TYPE_IDR
             || out_frame[1]->frame_type != ESP_H264_FRAME_TYPE_IDR) {
         printf("dual forced frame expect IDR got %d/%d. line %d\n",
+               out_frame[0]->frame_type, out_frame[1]->frame_type, __LINE__);
+        ret = ESP_H264_ERR_FAIL;
+        goto _exit_dual_;
+    }
+
+    /* Both pending requests must be consumed by the same dual-process call. This catches
+     * short-circuit evaluation that leaves stream1's request pending for one extra IDR. */
+    for (int16_t i = 0; i < 2; i++) {
+        esp_h264_enc_cfg_hw_t cfg_tmp = (i == 0) ? cfg.cfg0 : cfg.cfg1;
+        if (read_enc_cb(in_frame[i], width[i], height[i], cfg_tmp.pic_type) <= 0) {
+            ret = ESP_H264_ERR_FAIL;
+            goto _exit_dual_;
+        }
+    }
+    ret = esp_h264_enc_dual_process(enc, in_frame, out_frame);
+    if (ret != ESP_H264_ERR_OK
+            || out_frame[0]->frame_type != ESP_H264_FRAME_TYPE_P
+            || out_frame[1]->frame_type != ESP_H264_FRAME_TYPE_P) {
+        printf("dual post-force frame expect P got %d/%d. line %d\n",
                out_frame[0]->frame_type, out_frame[1]->frame_type, __LINE__);
         ret = ESP_H264_ERR_FAIL;
         goto _exit_dual_;

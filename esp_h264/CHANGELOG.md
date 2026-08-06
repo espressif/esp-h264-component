@@ -24,6 +24,7 @@
 - Fixed HW encoders (single and dual) to also report `ESP_H264_ERR_OVERFLOW` when the coded length exceeds `out_frame.raw_data.len` but the BS DMA overflow interrupt/flag was not raised, so `esp_h264_enc_process` can no longer return `ESP_H264_ERR_OK` with a length larger than the buffer the caller supplied
 - Fixed HW-generated PPS `pic_init_qs_minus26` (`qp - 26 - 2`) going out of the spec-required 0-51 range whenever `qp < 2`, producing a non-conformant PPS that standard decoders rejected; it now mirrors `pic_init_qp_minus26` since baseline-profile streams never use SP/SI slices
 - Changed HW encoders (single and dual) to also force the next frame back to IDR on `ESP_H264_ERR_OVERFLOW`, not just on fatal errors: even though the HW completes the frame internally on overflow, any external decoder never receives that frame's (truncated) bitstream and would otherwise silently desync starting from the very next P frame
+- Fixed dual HW encoder force-IDR request consumption so simultaneous requests on both streams produce one IDR instead of leaving stream1's request pending and producing a second consecutive IDR
 
 ## 1.3.7
 

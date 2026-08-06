@@ -223,8 +223,9 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
     esp_h264_enc_get_gop(&hw_hd->param_hd0->base, &gop0);
     esp_h264_enc_get_gop(&hw_hd->param_hd1->base, &gop1);
     uint8_t gop = (uint8_t)(((uint16_t)gop0 + (uint16_t)gop1) >> 1);
-    bool force_idr = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd0)
-                     || esp_h264_enc_hw_take_force_idr(hw_hd->param_hd1);
+    bool force_idr0 = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd0);
+    bool force_idr1 = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd1);
+    bool force_idr = force_idr0 || force_idr1;
     /** Intra (I-frame) check */
     if (force_idr || gop != hw_hd->gop || hw_hd->frame_num % hw_hd->gop == 0) {
         /** Currently, the I-frame is instantaneous decoding refresh frame(IDR-frame).
