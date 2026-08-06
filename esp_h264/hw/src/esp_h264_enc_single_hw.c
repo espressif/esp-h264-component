@@ -120,7 +120,12 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
     if (hw_hd->frame_num == 0) {
         /** To ensure that each IDR-frame can be decoded, it is added SPS and PPS before each IDR-frame. */
         uint16_t nal_bit_len;
-        esp_h264_enc_hw_get_nal(param_hd, (uint8_t *)slice_start_code, &nal_bit_len);
+        esp_h264_err_t nal_ret = esp_h264_enc_hw_get_nal(param_hd, (uint8_t *)slice_start_code, out_frame_size, &nal_bit_len);
+        if (nal_ret != ESP_H264_ERR_OK) {
+            ESP_H264_LOGE(TAG, "Out buffer too small for SPS/PPS");
+            *out_len = 0;
+            return nal_ret;
+        }
         slice_start_code = (uint32_t *)((uint32_t)out_frame + (nal_bit_len >> 3));
         slice_nal_len += nal_bit_len;
     }
@@ -141,6 +146,7 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
     esp_h264_err_t ret = esp_h264_enc_hw_cfg_dma_mvm(param_hd, &hw_hd->dma2d_hal);
     if (ret != ESP_H264_ERR_OK) {
         ESP_H264_LOGE(TAG, "Please configure MV packet.");
+        *out_len = 0;
         return ESP_H264_ERR_FAIL;
     }
     /** Start HW encoding */
@@ -152,7 +158,7 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
         h264_dma_hal_reset_counter_dbtmp(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_db(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_ref(&hw_hd->dma2d_hal);
-        if ((bs_intraw && 0x3) == 1) {
+        if ((bs_intraw & 0x3) == 1) {
             ESP_H264_LOGE(TAG, "The out buffer is too small. \n");
             return ESP_H264_ERR_MEM;
         }
@@ -167,7 +173,22 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
      *  So re-write the right start code. */
     *slice_start_code = 0x01000000;
     esp_h264_cache_check_and_writeback((uint8_t *)slice_start_code, 4);
-    if (rc_hd) {
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
+    bool bs_overflow = h264_hal_get_bs_bit_overflow(&hw_hd->h264_hal);
+#else
+    bool bs_overflow = hw_hd->bs_bit_overflow;
+    hw_hd->bs_bit_overflow = false;
+#endif
+    /* Safety net: the HW overflow interrupt/flag is not guaranteed to fire in every case
+     * where the coded bitstream exceeds the buffer (observed with margins close to the
+     * boundary). Enforce the documented contract - "coded length > out_frame.raw_data.len
+     * implies ESP_H264_ERR_OVERFLOW" - in software too, so a caller can never be told
+     * ESP_H264_ERR_OK with a length larger than the buffer it supplied. */
+    if (*out_len + (uint32_t)out_frame_len > out_frame_size) {
+        bs_overflow = true;
+    }
+    /* Skip RC update on overflow: coded statistics are not trustworthy */
+    if (!bs_overflow && rc_hd) {
         /** Get the encoder bits and MAD, the sum of QP from HW. */
         uint32_t enc_bits = 0, mad = 0, qp_sum = 0;
         h264_hal_get_rc_bits_mad_qpsum(&hw_hd->h264_hal, &enc_bits, &mad, &qp_sum);
@@ -182,16 +203,9 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
         esp_h264_rc_end(rc_hd, enc_bits, qp_sum, mad);
     }
     *out_len += out_frame_len;
-#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
-    if (h264_hal_get_bs_bit_overflow(&hw_hd->h264_hal)) {
+    if (bs_overflow) {
         return ESP_H264_ERR_OVERFLOW;
     }
-#else
-    if (hw_hd->bs_bit_overflow) {
-        hw_hd->bs_bit_overflow = false;
-        return ESP_H264_ERR_OVERFLOW;
-    }
-#endif
     return ESP_H264_ERR_OK;
 }
 
@@ -221,8 +235,14 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
     esp_h264_mutex_t mutex;
     esp_h264_enc_hw_get_mutex(hw_hd->param_hd, &mutex);
     esp_h264_mutex_lock(mutex, ESP_H264_MAX_DELAY);
-    ret |= h264_hw_enc_gop_mode_process(hw_hd, in_frame->raw_data.buffer, out_frame->raw_data.buffer, out_frame->raw_data.len, &out_frame->length);
+    ret = h264_hw_enc_gop_mode_process(hw_hd, in_frame->raw_data.buffer, out_frame->raw_data.buffer, out_frame->raw_data.len, &out_frame->length);
     esp_h264_mutex_unlock(mutex);
+    /** ESP_H264_ERR_OVERFLOW means the frame still completed (bitstream exceeded budget);
+     *  any other error may have reset the HW/reference state, so force the next frame to IDR. */
+    if (ret != ESP_H264_ERR_OK && ret != ESP_H264_ERR_OVERFLOW) {
+        hw_hd->frame_num = 0;
+        return ret;
+    }
     hw_hd->frame_num++;
     return ret;
 }
@@ -255,7 +275,15 @@ static esp_h264_err_t enc_open(esp_h264_enc_handle_t enc)
     /** Enable H.264 interrupt */
     if (esp_h264_intr_alloc(0, h264_gop_isr, (void *)hw_hd, &hw_hd->intr_hd) == ESP_OK) {
         hw_hd->frame_done = esp_h264_mutex_create();
-        h264_hal_ena_intr(&hw_hd->h264_hal, H264_INTR_DB_TMP_READY | H264_INTR_REC_READY | H264_INTR_2MB_LINE_DONE | H264_INTR_FRAME_DONE);
+        if (hw_hd->frame_done == NULL) {
+            enc_close(enc);
+            return ESP_H264_ERR_MEM;
+        }
+        h264_hal_ena_intr(&hw_hd->h264_hal, H264_INTR_DB_TMP_READY | H264_INTR_REC_READY | H264_INTR_2MB_LINE_DONE | H264_INTR_FRAME_DONE
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+                          | H264_INTR_BS_BIT_OVERFLOW
+#endif
+                         );
         return ESP_H264_ERR_OK;
     }
     /** Close the encoder */
