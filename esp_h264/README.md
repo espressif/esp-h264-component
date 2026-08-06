@@ -1,6 +1,8 @@
 # ESP_H264
 
-- [![Component Registry](https://components.espressif.com/components/espressif/esp_h264/badge.svg)](https://components.espressif.com/components/espressif/esp_h264)
+[![Component Registry](https://components.espressif.com/components/espressif/esp_h264/badge.svg)](https://components.espressif.com/components/espressif/esp_h264)
+
+[[中文]](./README_CN.md)
 
 ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offering both hardware and software implementations. The hardware encoder (HW encoder) is designed specifically for the ESP32-P4 chip, achieving a frame rate greater than 30fps for 1080P resolution images. The software encoder (SW encoder) is sourced from v2.2.0 of [openh264](https://github.com/cisco/openh264), while the decoder is obtained from [tinyH264](https://github.com/udevbe/tinyh264). Both the software encoder and decoder are optimized for memory and CPU usage, ensuring optimal performance on Espressif chips.
 

@@ -1063,7 +1063,7 @@ TEST_CASE("hw_enc_sw_dec_roundtrip_test", "[esp_h264]")
     TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
 
     uint32_t expect_dec_size = (uint32_t)enc_cfg.res.width * enc_cfg.res.height
-                                + ((uint32_t)enc_cfg.res.width * enc_cfg.res.height >> 1);
+                               + ((uint32_t)enc_cfg.res.width * enc_cfg.res.height >> 1);
     int frame_count = 0;
     int decoded_pic_count = 0;
 
@@ -1501,13 +1501,13 @@ TEST_CASE("hw_enc_overflow_does_not_force_idr_test", "[esp_h264]")
      * (frame 1). A close match here would mean the reference desync went completely
      * unnoticed downstream, which is the unsafe condition this test exists to catch. */
     bool falsely_looks_correct = dec_ret2 == ESP_H264_ERR_OK && got_full_size_picture
-                                  && delta_from_true_content <= 8;
+                                 && delta_from_true_content <= 8;
     TEST_ASSERT_FALSE_MESSAGE(falsely_looks_correct,
-                               "A decoder that never saw the overflowed frame must not silently "
-                               "reproduce the correct pixel content from the next P frame -- this "
-                               "would mean overflow-induced frame loss goes undetected downstream. "
-                               "Callers must force an IDR after ESP_H264_ERR_OVERFLOW to resync any "
-                               "real decoder, even though the HW driver itself does not.");
+                              "A decoder that never saw the overflowed frame must not silently "
+                              "reproduce the correct pixel content from the next P frame -- this "
+                              "would mean overflow-induced frame loss goes undetected downstream. "
+                              "Callers must force an IDR after ESP_H264_ERR_OVERFLOW to resync any "
+                              "real decoder, even though the HW driver itself does not.");
     esp_h264_free(frame1_src_copy);
 
     esp_h264_free(in_frame.raw_data.buffer);
