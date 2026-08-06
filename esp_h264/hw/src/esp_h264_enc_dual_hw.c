@@ -251,9 +251,9 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
     esp_h264_mutex_lock(mutex, ESP_H264_MAX_DELAY);
     ret0 = h264_hw_enc_frame_mode_process(hw_hd, hw_hd->param_hd0, in_frame[0]->raw_data.buffer, out_frame[0]->raw_data.buffer, out_frame[0]->raw_data.len, &out_frame[0]->length);
     esp_h264_mutex_unlock(mutex);
-    /** ESP_H264_ERR_OVERFLOW means the frame still completed (bitstream exceeded budget);
-     *  any other error may have reset the HW/reference state, so force the next frame to IDR
-     *  and skip stream1 (its shared HW/DMA state may no longer be consistent). */
+    /** A true fatal error (not ESP_H264_ERR_OVERFLOW) may have left the shared HW/DMA state
+     *  inconsistent, so skip stream1 entirely and force the next frame back to IDR. Overflow
+     *  itself does not corrupt shared HW state, so stream1 still proceeds normally below. */
     if (ret0 != ESP_H264_ERR_OK && ret0 != ESP_H264_ERR_OVERFLOW) {
         out_frame[1]->length = 0;
         hw_hd->frame_num = 0;
@@ -267,7 +267,16 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
         hw_hd->frame_num = 0;
         return ret1;
     }
-    hw_hd->frame_num++;
+    /** Any overflow (on stream0 and/or stream1) means at least one external decoder never
+     *  received a usable, complete bitstream for this frame. Even though shared HW state is
+     *  fine (unlike the true-fatal case above), continuing to encode P frames against a
+     *  reference the receiver never got would silently desync it, so force the next frame
+     *  back to IDR here too. */
+    if (ret0 == ESP_H264_ERR_OVERFLOW || ret1 == ESP_H264_ERR_OVERFLOW) {
+        hw_hd->frame_num = 0;
+    } else {
+        hw_hd->frame_num++;
+    }
     if (ret0 != ESP_H264_ERR_OK) {
         return ret0;
     }

@@ -237,9 +237,13 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
     esp_h264_mutex_lock(mutex, ESP_H264_MAX_DELAY);
     ret = h264_hw_enc_gop_mode_process(hw_hd, in_frame->raw_data.buffer, out_frame->raw_data.buffer, out_frame->raw_data.len, &out_frame->length);
     esp_h264_mutex_unlock(mutex);
-    /** ESP_H264_ERR_OVERFLOW means the frame still completed (bitstream exceeded budget);
-     *  any other error may have reset the HW/reference state, so force the next frame to IDR. */
-    if (ret != ESP_H264_ERR_OK && ret != ESP_H264_ERR_OVERFLOW) {
+    /** Any non-OK result -- including ESP_H264_ERR_OVERFLOW -- means the caller did not receive
+     *  a usable, complete bitstream for this frame. Even when the HW's own reconstruction
+     *  completed internally on overflow (only the coded output was truncated), any external
+     *  decoder never received this frame and cannot track that reference: continuing to encode
+     *  P frames against it would silently desync every downstream decoder. So force the next
+     *  frame back to IDR here too, matching how other (fatal) errors are already handled. */
+    if (ret != ESP_H264_ERR_OK) {
         hw_hd->frame_num = 0;
         return ret;
     }
