@@ -109,8 +109,8 @@ static esp_h264_err_t set_fps(esp_h264_enc_param_handle_t handle, uint8_t fps)
     /* Regenerate full SPS+PPS blob; SPS length can change (e.g. VUI timing_info). */
     param->nal_bit_len = esp_h264_enc_set_sps(param->nal_buf, param->nal_buf_len, param->height, param->width, param->fps);
     param->nal_bit_len += esp_h264_enc_set_pps(param->nal_buf + (param->nal_bit_len >> 3),
-                                               param->nal_buf_len - (param->nal_bit_len >> 3),
-                                               param->qp_init, true);
+                          param->nal_buf_len - (param->nal_bit_len >> 3),
+                          param->qp_init, true);
     esp_h264_mutex_unlock(param->mutex);
     return ESP_H264_ERR_OK;
 }
