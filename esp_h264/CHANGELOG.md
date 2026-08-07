@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Allocated the HW deblocking buffer from non-encrypted PSRAM when supported
+
 ## 1.3.8
 
 ### Features
