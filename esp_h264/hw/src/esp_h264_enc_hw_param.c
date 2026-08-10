@@ -164,9 +164,7 @@ static esp_h264_err_t force_idr(esp_h264_enc_param_handle_t handle)
 {
     esp_h264_enc_param_hw_handle_t param_base = __containerof(handle, esp_h264_enc_param_hw_t, base);
     esp_h264_param_t *param = __containerof(param_base, esp_h264_param_t, hw_base);
-    esp_h264_mutex_lock(param->mutex, ESP_H264_MAX_DELAY);
-    param->force_idr = true;
-    esp_h264_mutex_unlock(param->mutex);
+    __atomic_store_n(&param->force_idr, true, __ATOMIC_RELEASE);
     return ESP_H264_ERR_OK;
 }
 
@@ -443,11 +441,7 @@ esp_h264_err_t esp_h264_enc_hw_get_mutex(esp_h264_enc_param_hw_handle_t handle, 
 bool esp_h264_enc_hw_take_force_idr(esp_h264_enc_param_hw_handle_t handle)
 {
     esp_h264_param_t *param = __containerof(handle, esp_h264_param_t, hw_base);
-    esp_h264_mutex_lock(param->mutex, ESP_H264_MAX_DELAY);
-    bool force = param->force_idr;
-    param->force_idr = false;
-    esp_h264_mutex_unlock(param->mutex);
-    return force;
+    return __atomic_exchange_n(&param->force_idr, false, __ATOMIC_ACQ_REL);
 }
 
 esp_h264_err_t esp_h264_enc_hw_get_qp_init(esp_h264_enc_param_hw_handle_t handle, uint8_t *out_qp_init)

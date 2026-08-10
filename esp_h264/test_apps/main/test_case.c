@@ -17,8 +17,26 @@ static int16_t res_height = 128;
 
 #if CONFIG_IDF_TARGET_ESP32P4
 
+#include "../../hw/src/h264_rc.h"
+
 static int16_t res_width1 = 128;
 static int16_t res_height1 = 128;
+
+TEST_CASE("hw_rc_cumulative_error_saturation_test", "[esp_h264]")
+{
+    esp_h264_rc_hd_t rc_hd = esp_h264_enc_hw_rc_new(51, 0, 1000, 1, 1, 1);
+    TEST_ASSERT_NOT_NULL(rc_hd);
+
+    esp_h264_rc_end(rc_hd, UINT32_MAX, 25, 1);
+
+    uint32_t rate;
+    uint32_t pred_mad;
+    uint8_t qp;
+    esp_h264_rc_start(rc_hd, false, &rate, &pred_mad, &qp);
+    TEST_ASSERT_EQUAL_UINT8(26, qp);
+
+    esp_h264_enc_hw_rc_del(rc_hd);
+}
 
 TEST_CASE("hw_enc_single_hw_enc_gop_test", "[esp_h264]")
 {

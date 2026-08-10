@@ -21,7 +21,8 @@ typedef struct esp_h264_rc {
     float    mad_last4_average;
     float    mad_frame_pred;
     uint16_t mb_cnt;
-    int32_t  ebits;
+    int64_t  ebits;
+    int64_t  ebits_sat_clip;
     float    err_sum;
     uint8_t  frame_num;
 } esp_h264_rc_t;
@@ -66,6 +67,8 @@ esp_h264_rc_hd_t esp_h264_enc_hw_rc_new(uint8_t qp_max, uint8_t qp_min, uint32_t
     if (prc->bits_per_frame == 0) {
         prc->bits_per_frame = 1;
     }
+    /* Limit cumulative error correction to one second of the bitrate budget. */
+    prc->ebits_sat_clip = bitrate;
     prc->mb_cnt = mb_cnt;
     mad_idx = CLIP3(0, INIT_MAD_MAX_IDX, 53 / (prc->qpm + 1));
     mad = 8.0f / init_mad[mad_idx];
@@ -98,6 +101,7 @@ void esp_h264_enc_hw_rc_set_bt_fps(esp_h264_rc_hd_t rc_hd, uint32_t bitrate, uin
     if (prc->bits_per_frame == 0) {
         prc->bits_per_frame = 1;
     }
+    prc->ebits_sat_clip = bitrate;
 }
 
 void esp_h264_rc_start(esp_h264_rc_hd_t rc_hd, bool is_iframe, uint32_t *rate, uint32_t *pred_mad, uint8_t *qp)
@@ -144,6 +148,7 @@ void esp_h264_rc_end(esp_h264_rc_hd_t rc_hd, uint32_t total_enc_bits, uint32_t f
     float bits_err;
     float mad_cur;
     float err_bit_per_frame;
+    int64_t frame_err;
 
     if (prc == NULL || prc->mb_cnt == 0 || prc->bits_per_frame == 0) {
         return;
@@ -151,7 +156,8 @@ void esp_h264_rc_end(esp_h264_rc_hd_t rc_hd, uint32_t total_enc_bits, uint32_t f
 
     mad_cur = 1.0f * frame_mad_sum / prc->mb_cnt;
     prc->qp_average_frame = frame_qp_sum / prc->mb_cnt;
-    prc->ebits += (int32_t)total_enc_bits - (int32_t)prc->bits_per_frame;
+    frame_err = (int64_t)total_enc_bits - (int64_t)prc->bits_per_frame;
+    prc->ebits = CLIP3(-prc->ebits_sat_clip, prc->ebits_sat_clip, prc->ebits + frame_err);
 
     prc->mad[(prc->frame_num & 0x3)] = mad_cur;
     prc->frame_bits_last[(prc->frame_num & 0x3)] = total_enc_bits;
