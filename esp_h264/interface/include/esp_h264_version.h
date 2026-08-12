@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.3.7"
+#define ESP_H264_VERSION "1.3.8"
 
 /**
  *  Features:
@@ -66,6 +66,12 @@ extern "C" {
  *     - Added `esp_h264_enc_force_idr` to force the next encoded frame to be an IDR (HW), without changing the configured GOP
  *     - Fixed `CLIP3` argument order in HW rate control so `eqp` is clamped to [-5, 5] correctly
  *     - Fixed spelling and grammar in public headers and README
+ *     v1.3.8:
+ *     - Fixed HW-generated NAL conformance and SPS/PPS generation
+ *     - Improved HW encoder overflow recovery and error handling
+ *     - Fixed HW rate control and dual-stream force-IDR handling
+ *     - Made HW force-IDR requests non-blocking
+ *     - Added Chinese documentation and component registry metadata
  */
 
 /**

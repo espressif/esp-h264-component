@@ -16,7 +16,11 @@ extern "C" {
 #endif
 
 #define H264_LL_GET_HW() ((h264_dev_t *)(0x50084000))
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+#define H264_INTR_MASK   (0x1f)
+#else
 #define H264_INTR_MASK   (0xf)
+#endif
 
 /**
  * @brief  Reset the H264 module

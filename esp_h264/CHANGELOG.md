@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.3.8
+
+### Features
+
+- Added `README_CN.md` and component registry tags
+
+### Fixes
+
+- Fixed BS DMA timeout check using bitwise `&` instead of logical `&&` (single and dual HW encoders)
+- Fixed `set_fps` to regenerate SPS+PPS and update `nal_bit_len` after VUI SPS size changes; raised `SPS_PPS_BUF_SIZE`
+- Enabled `H264_INTR_BS_BIT_OVERFLOW` and extended `H264_INTR_MASK` for P4 rev >= 3.0
+- Fixed dual-encode error return (no longer OR negative codes) and `get_param_hd1` NULL check
+- Fixed dual encode to skip stream1 only on a fatal stream0 error (not on `ESP_H264_ERR_OVERFLOW`)
+- Fixed HW encoders to force the next frame to an IDR and clear the output length after a fatal encode failure
+- Fixed SW encoder min resolution to allow 16x16 and check `WelsCreateSVCEncoder` result
+- Fixed overlapping `memcpy` in flash-encryption AUD insert (`memmove`)
+- Fixed HW rate control first-frame QP, `init_mad` bounds, target-bit clamp, cumulative bit-error saturation, and skip `rc_end` on BS overflow
+- Fixed HW SPS `level_idc` selection (MaxMBPS / MaxFS per Annex A)
+- Fixed IDR SPS/PPS copy to check output buffer length (`esp_h264_enc_hw_get_nal`)
+- Fixed `enc_open` to fail when `frame_done` mutex creation fails
+- Fixed HW-generated SPS/PPS/slice headers missing Annex-B `emulation_prevention_three_byte` (0x03) insertion, which produced non-conformant bitstreams that standard decoders rejected
+- Fixed HW encoders (single and dual) to also report `ESP_H264_ERR_OVERFLOW` when the coded length exceeds `out_frame.raw_data.len` but the BS DMA overflow interrupt/flag was not raised, so `esp_h264_enc_process` can no longer return `ESP_H264_ERR_OK` with a length larger than the buffer the caller supplied
+- Fixed HW-generated PPS `pic_init_qs_minus26` (`qp - 26 - 2`) going out of the spec-required 0-51 range whenever `qp < 2`, producing a non-conformant PPS that standard decoders rejected; it now mirrors `pic_init_qp_minus26` since baseline-profile streams never use SP/SI slices
+- Changed HW encoders (single and dual) to also force the next frame back to IDR on `ESP_H264_ERR_OVERFLOW`, not just on fatal errors: even though the HW completes the frame internally on overflow, any external decoder never receives that frame's (truncated) bitstream and would otherwise silently desync starting from the very next P frame
+- Fixed dual HW encoder force-IDR request consumption so simultaneous requests on both streams produce one IDR instead of leaving stream1's request pending and producing a second consecutive IDR
+- Made HW force-IDR requests non-blocking while preserving thread safety
+
 ## 1.3.7
 
 ### Features

@@ -123,7 +123,12 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
     if (!hw_hd->frame_num) {
         /** To ensure that each IDR-frame can be decoded, it is added SPS and PPS before each IDR-frame. */
         uint16_t nal_bit_len;
-        esp_h264_enc_hw_get_nal(param_hd, (uint8_t *)slice_start_code, &nal_bit_len);
+        esp_h264_err_t nal_ret = esp_h264_enc_hw_get_nal(param_hd, (uint8_t *)slice_start_code, out_frame_size, &nal_bit_len);
+        if (nal_ret != ESP_H264_ERR_OK) {
+            ESP_H264_LOGE(TAG, "Out buffer too small for SPS/PPS");
+            *out_len = 0;
+            return nal_ret;
+        }
         slice_start_code = (uint32_t *)((uint32_t)out_frame + (nal_bit_len >> 3));
         slice_nal_len += nal_bit_len;
     }
@@ -137,6 +142,7 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
     esp_h264_err_t ret = esp_h264_enc_hw_cfg_dma_mvm(param_hd, &hw_hd->dma2d_hal);
     if (ret != ESP_H264_ERR_OK) {
         ESP_H264_LOGE(TAG, "Please configure MV packet.");
+        *out_len = 0;
         return ESP_H264_ERR_FAIL;
     }
     esp_h264_enc_hw_cfg_dma_db_ref(param_hd, &hw_hd->dma2d_hal);
@@ -151,7 +157,7 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
         h264_dma_hal_reset_counter_dbtmp(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_ref(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_db(&hw_hd->dma2d_hal);
-        if ((bs_intraw && 0x3) == 1) {
+        if ((bs_intraw & 0x3) == 1) {
             ESP_H264_LOGE(TAG, "The out buffer is too small. \n");
             return ESP_H264_ERR_MEM;
         }
@@ -166,7 +172,22 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
      *  So re-write the right start code. */
     *slice_start_code = 0x01000000;
     esp_h264_cache_check_and_writeback((uint8_t *)slice_start_code, 4);
-    if (rc_hd) {
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
+    bool bs_overflow = h264_hal_get_bs_bit_overflow(&hw_hd->h264_hal);
+#else
+    bool bs_overflow = hw_hd->bs_bit_overflow;
+    hw_hd->bs_bit_overflow = false;
+#endif
+    /* Safety net: the HW overflow interrupt/flag is not guaranteed to fire in every case
+     * where the coded bitstream exceeds the buffer (observed with margins close to the
+     * boundary). Enforce the documented contract - "coded length > out_frame.raw_data.len
+     * implies ESP_H264_ERR_OVERFLOW" - in software too, so a caller can never be told
+     * ESP_H264_ERR_OK with a length larger than the buffer it supplied. */
+    if (*out_len + (uint32_t)out_frame_len > out_frame_size) {
+        bs_overflow = true;
+    }
+    /* Skip RC update on overflow: coded statistics are not trustworthy */
+    if (!bs_overflow && rc_hd) {
         /** Get the encoder bits and MAD, the sum of QP from HW. */
         uint32_t enc_bits = 0, mad = 0, qp_sum = 0;
         h264_hal_get_rc_bits_mad_qpsum(&hw_hd->h264_hal, &enc_bits, &mad, &qp_sum);
@@ -181,23 +202,15 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
         esp_h264_rc_end(rc_hd, enc_bits, qp_sum, mad);
     }
     *out_len += out_frame_len;
-#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
-    if (h264_hal_get_bs_bit_overflow(&hw_hd->h264_hal)) {
+    if (bs_overflow) {
         return ESP_H264_ERR_OVERFLOW;
     }
-#else
-    if (hw_hd->bs_bit_overflow) {
-        hw_hd->bs_bit_overflow = false;
-        return ESP_H264_ERR_OVERFLOW;
-    }
-#endif
     return ESP_H264_ERR_OK;
 }
 
 static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_in_frame_t *in_frame[2], esp_h264_enc_out_frame_t *out_frame[2])
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
-    esp_h264_err_t ret = ESP_H264_ERR_OK;
     hw_hd->frame_num = hw_hd->frame_num % hw_hd->gop;
     out_frame[0]->dts = in_frame[0]->pts;
     out_frame[0]->pts = in_frame[0]->pts;
@@ -210,8 +223,9 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
     esp_h264_enc_get_gop(&hw_hd->param_hd0->base, &gop0);
     esp_h264_enc_get_gop(&hw_hd->param_hd1->base, &gop1);
     uint8_t gop = (uint8_t)(((uint16_t)gop0 + (uint16_t)gop1) >> 1);
-    bool force_idr = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd0)
-                     || esp_h264_enc_hw_take_force_idr(hw_hd->param_hd1);
+    bool force_idr0 = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd0);
+    bool force_idr1 = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd1);
+    bool force_idr = force_idr0 || force_idr1;
     /** Intra (I-frame) check */
     if (force_idr || gop != hw_hd->gop || hw_hd->frame_num % hw_hd->gop == 0) {
         /** Currently, the I-frame is instantaneous decoding refresh frame(IDR-frame).
@@ -231,16 +245,43 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
      *  `mutex` is for thread safety.
     */
     esp_h264_mutex_t mutex;
+    esp_h264_err_t ret0;
+    esp_h264_err_t ret1;
+
     esp_h264_enc_hw_get_mutex(hw_hd->param_hd0, &mutex);
     esp_h264_mutex_lock(mutex, ESP_H264_MAX_DELAY);
-    ret |= h264_hw_enc_frame_mode_process(hw_hd, hw_hd->param_hd0, in_frame[0]->raw_data.buffer, out_frame[0]->raw_data.buffer, out_frame[0]->raw_data.len, &out_frame[0]->length);
+    ret0 = h264_hw_enc_frame_mode_process(hw_hd, hw_hd->param_hd0, in_frame[0]->raw_data.buffer, out_frame[0]->raw_data.buffer, out_frame[0]->raw_data.len, &out_frame[0]->length);
     esp_h264_mutex_unlock(mutex);
+    /** A true fatal error (not ESP_H264_ERR_OVERFLOW) may have left the shared HW/DMA state
+     *  inconsistent, so skip stream1 entirely and force the next frame back to IDR. Overflow
+     *  itself does not corrupt shared HW state, so stream1 still proceeds normally below. */
+    if (ret0 != ESP_H264_ERR_OK && ret0 != ESP_H264_ERR_OVERFLOW) {
+        out_frame[1]->length = 0;
+        hw_hd->frame_num = 0;
+        return ret0;
+    }
     esp_h264_enc_hw_get_mutex(hw_hd->param_hd1, &mutex);
     esp_h264_mutex_lock(mutex, ESP_H264_MAX_DELAY);
-    ret |= h264_hw_enc_frame_mode_process(hw_hd, hw_hd->param_hd1, in_frame[1]->raw_data.buffer, out_frame[1]->raw_data.buffer, out_frame[1]->raw_data.len, &out_frame[1]->length);
+    ret1 = h264_hw_enc_frame_mode_process(hw_hd, hw_hd->param_hd1, in_frame[1]->raw_data.buffer, out_frame[1]->raw_data.buffer, out_frame[1]->raw_data.len, &out_frame[1]->length);
     esp_h264_mutex_unlock(mutex);
-    hw_hd->frame_num++;
-    return ret;
+    if (ret1 != ESP_H264_ERR_OK && ret1 != ESP_H264_ERR_OVERFLOW) {
+        hw_hd->frame_num = 0;
+        return ret1;
+    }
+    /** Any overflow (on stream0 and/or stream1) means at least one external decoder never
+     *  received a usable, complete bitstream for this frame. Even though shared HW state is
+     *  fine (unlike the true-fatal case above), continuing to encode P frames against a
+     *  reference the receiver never got would silently desync it, so force the next frame
+     *  back to IDR here too. */
+    if (ret0 == ESP_H264_ERR_OVERFLOW || ret1 == ESP_H264_ERR_OVERFLOW) {
+        hw_hd->frame_num = 0;
+    } else {
+        hw_hd->frame_num++;
+    }
+    if (ret0 != ESP_H264_ERR_OK) {
+        return ret0;
+    }
+    return ret1;
 }
 
 static esp_h264_err_t enc_close(esp_h264_enc_dual_handle_t enc)
@@ -270,7 +311,15 @@ static esp_h264_err_t enc_open(esp_h264_enc_dual_handle_t enc)
     /** Enable H.264 interrupt */
     if (esp_h264_intr_alloc(0, h264_frame_isr, (void *)hw_hd, &hw_hd->intr_hd) == ESP_OK) {
         hw_hd->frame_done = esp_h264_mutex_create();
-        h264_hal_ena_intr(&hw_hd->h264_hal, H264_INTR_DB_TMP_READY | H264_INTR_REC_READY | H264_INTR_2MB_LINE_DONE | H264_INTR_FRAME_DONE);
+        if (hw_hd->frame_done == NULL) {
+            enc_close(enc);
+            return ESP_H264_ERR_MEM;
+        }
+        h264_hal_ena_intr(&hw_hd->h264_hal, H264_INTR_DB_TMP_READY | H264_INTR_REC_READY | H264_INTR_2MB_LINE_DONE | H264_INTR_FRAME_DONE
+#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
+                          | H264_INTR_BS_BIT_OVERFLOW
+#endif
+                         );
         return ESP_H264_ERR_OK;
     }
     /** Close the encoder */
@@ -388,7 +437,7 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
         /** Set the macroblock resolution */
         h264_hal_set_mbres(param_cfg[i].device, mb_width[i], mb_height[i]);
         /** Create a new parameter handle */
-        ret |= esp_h264_enc_hw_new_param(&param_cfg[i], &param_hd[i]);
+        ret = esp_h264_enc_hw_new_param(&param_cfg[i], &param_hd[i]);
         ESP_H264_GOTO_ON_FALSE(ret == ESP_H264_ERR_OK, ret, __exit__, TAG, "No memory for param handle");
         /** Configure parameter*/
         esp_h264_enc_set_gop(&param_hd[i]->base, enc_cfg[i].gop);
@@ -434,7 +483,7 @@ esp_h264_err_t esp_h264_enc_dual_hw_get_param_hd0(esp_h264_enc_dual_handle_t enc
 
 esp_h264_err_t esp_h264_enc_dual_hw_get_param_hd1(esp_h264_enc_dual_handle_t enc, esp_h264_enc_param_hw_handle_t *out_param)
 {
-    if (enc) {
+    if (enc && out_param) {
         esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
         *out_param = hw_hd->param_hd1;
         return ESP_H264_ERR_OK;

@@ -42,14 +42,20 @@ static const uint8_t i_size0_255[256] = {
     8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, /* value: 128 - 255*/
 };
 
-/** Maxinum macroblocks per second  and Maxinum frame size (macroblocks) */
-const int level_idc_table[][2] = {
-    { 11880, 20 },
-    { 40500, 30 },
-    { 21600, 32 },
-    { 245760, 41 },
-    { 522240, 42 },
-    { 589824, 50 },
+/**
+ * H.264 Annex A Table A-1 subset: MaxMBPS, MaxFS (macroblocks), level_idc.
+ * Must be sorted by increasing MaxMBPS / MaxFS for the linear scan below.
+ */
+static const int level_idc_table[][3] = {
+    { 11880, 396, 20 },
+    { 19800, 792, 21 },
+    { 20250, 1620, 22 },
+    { 40500, 1620, 30 },
+    { 108000, 3600, 31 },
+    { 216000, 5120, 32 },
+    { 245760, 8192, 41 },
+    { 522240, 8704, 42 },
+    { 589824, 22080, 50 },
 };
 
 typedef struct {
@@ -57,17 +63,48 @@ typedef struct {
     uint8_t *p;
     uint8_t *end;
     int      bits_left;
+    int      zero_run;  /*<! Count (capped at 2) of consecutive 0x00 bytes just emitted,
+                             used to insert emulation_prevention_three_byte. */
 } bs_t;
 
-static int level_idcl(int width, int high, int fps)
+static int level_idcl(int width, int height, int fps)
 {
-    int mb_per_s = fps * (width + 15) * (high + 15) / 256;
-    for (int i = 0; i < sizeof(level_idc_table) / sizeof(level_idc_table[0]); i++) {
-        if (mb_per_s < level_idc_table[i][0]) {
-            return level_idc_table[i][1];
+    int mb_w = (width + 15) / 16;
+    int mb_h = (height + 15) / 16;
+    int frame_mbs = mb_w * mb_h;
+    int mb_per_s = fps * frame_mbs;
+
+    for (int i = 0; i < (int)(sizeof(level_idc_table) / sizeof(level_idc_table[0])); i++) {
+        if (mb_per_s <= level_idc_table[i][0] && frame_mbs <= level_idc_table[i][1]) {
+            return level_idc_table[i][2];
         }
     }
     return LEVL_IDC_MAX;
+}
+
+/**
+ * @brief  Emit one completed RBSP byte into the EBSP output, inserting an
+ *         `emulation_prevention_three_byte` (0x03) right before it when the
+ *         previous two emitted bytes were 0x00 0x00 and this byte is 0x00-0x03.
+ *
+ * @note  Per H.264 7.4.1.1, within a NAL unit the byte sequences 0x000000,
+ *        0x000001 and 0x000002 must never occur; 0x03 must be inserted to
+ *        break them up. Decoders then strip that 0x03 back out.
+ */
+static void bs_emit_byte(bs_t *b, uint8_t byte)
+{
+    if (b->zero_run >= 2 && byte <= 3) {
+        if (!BS_EOF(b)) {
+            b->p[0] = 0x03;
+        }
+        b->p++;
+        b->zero_run = 0;
+    }
+    if (!BS_EOF(b)) {
+        b->p[0] = byte;
+    }
+    b->p++;
+    b->zero_run = (byte == 0) ? (b->zero_run + 1) : 0;
 }
 
 static void bs_write_u1(bs_t *b, uint32_t v)
@@ -77,8 +114,10 @@ static void bs_write_u1(bs_t *b, uint32_t v)
         (*(b->p)) |= ((v & 0x01) << b->bits_left);
     }
     if (b->bits_left == 0) {
-        b->p++;
-        b->p[0] = 0;
+        bs_emit_byte(b, b->p[0]);
+        if (!BS_EOF(b)) {
+            b->p[0] = 0;
+        }
         b->bits_left = 8;
     }
 }
@@ -266,7 +305,13 @@ uint16_t esp_h264_enc_set_pps(uint8_t *buffer, uint16_t len, uint8_t qp, bool db
     uint8_t weighted_pred_flag = 0;
     uint8_t weighted_bipred_idc = 0;
     int8_t pic_init_qp_minus26 = qp - 26;
-    int8_t pic_init_qs_minus26 = qp - 26 - 2;
+    /* pic_init_qs (= 26 + pic_init_qs_minus26) is only meaningful for SP/SI slices, which this
+     * baseline-profile (profile_idc 66) encoder never emits, so its value has no effect on
+     * decoding P/I slices. It must still be spec-valid (0..51) though: mirroring pic_init_qp
+     * guarantees that, since `qp` itself is already validated to be within 0..51. An earlier
+     * "qp - 2" offset had no functional purpose and went out of range (negative) for qp < 2,
+     * producing a non-conformant PPS that compliant decoders reject. */
+    int8_t pic_init_qs_minus26 = pic_init_qp_minus26;
     int8_t chroma_qp_index_offset = 0;
     int8_t deblocking_filter_control_present_flag = db_ena;
     uint8_t constrained_intra_pred_flag = 0;
@@ -298,6 +343,7 @@ uint16_t esp_h264_enc_set_pps(uint8_t *buffer, uint16_t len, uint8_t qp, bool db
 uint16_t esp_h264_enc_hw_set_slice(uint8_t *buffer, uint32_t len, bool is_iframe, uint32_t frame_num, int8_t qp_delta, bool db_ena)
 {
     uint32_t *start_code = (uint32_t *)buffer;
+    /* HW placeholder; caller rewrites Annex-B start code (0x00000001 LE) after encode */
     start_code[0] = 0xffffffff;
     bs_t bs = {
         .bits_left = 8,
@@ -365,14 +411,15 @@ uint16_t esp_h264_enc_hw_set_slice(uint8_t *buffer, uint32_t len, bool is_iframe
         int32_t nal_bytes = nal_size >> 3;
         uint32_t buffer_copy = (uint32_t)(buffer + nal_bytes);
         buffer_copy &= 0xf;
-        if (buffer_copy >= 0x8) {
+        /* Need room for 8-byte AUD insert after the 4-byte start code (overlap-safe move). */
+        if (buffer_copy >= 0x8 && (uint32_t)(nal_bytes + 13) <= len) {
             static const uint8_t aud_nalu_8B[] = {
                 0x09,                    /* nal header (AUD) */
                 0xF0,                    /* primary_pic_type + RBSP trailing */
                 0x00, 0x00,              /* padding */
                 0x00, 0x00, 0x00, 0x01,  /* start code for next NAL (slice) */
             };
-            memcpy(buffer + 12, buffer + 4, nal_bytes + 1);
+            memmove(buffer + 12, buffer + 4, (size_t)nal_bytes + 1);
             memcpy(buffer + 4, aud_nalu_8B, 8);
             nal_size += 64;
         }

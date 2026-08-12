@@ -103,14 +103,16 @@ esp_h264_err_t esp_h264_enc_hw_get_qp_init(esp_h264_enc_param_hw_handle_t handle
 /**
  * @brief  Get sequence parameter set (SPS) and picture parameter set (PPS)
  *
- * @param[in]   handle           Hardware H.264 encoder parameter set handle
- * @param[out]  out_nal_buf      The buffer is saved sequence parameter set (SPS) and picture parameter set (PPS)
- * @param[out]  out_nal_bit_len  The bit length of `nal_buf`
+ * @param[in]   handle            Hardware H.264 encoder parameter set handle
+ * @param[out]  out_nal_buf       The buffer is saved sequence parameter set (SPS) and picture parameter set (PPS)
+ * @param[in]   out_nal_buf_len   Byte length of `out_nal_buf`
+ * @param[out]  out_nal_bit_len   The bit length of SPS+PPS written to `out_nal_buf`
  *
  * @return
- *       - ESP_H264_ERR_OK  Succeeded
+ *       - ESP_H264_ERR_OK   Succeeded
+ *       - ESP_H264_ERR_MEM  `out_nal_buf` is too small
  */
-esp_h264_err_t esp_h264_enc_hw_get_nal(esp_h264_enc_param_hw_handle_t handle, uint8_t *out_nal_buf, uint16_t *out_nal_bit_len);
+esp_h264_err_t esp_h264_enc_hw_get_nal(esp_h264_enc_param_hw_handle_t handle, uint8_t *out_nal_buf, uint32_t out_nal_buf_len, uint16_t *out_nal_bit_len);
 
 /**
  * @brief  Configure reference and de-blocking DMA descriptor

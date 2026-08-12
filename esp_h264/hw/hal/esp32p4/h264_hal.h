@@ -21,7 +21,7 @@ extern "C" {
 #if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
 #define H264_INTR_BS_BIT_OVERFLOW (0x1 << 4)
 #endif
-#define H264_INTR_MASK            (0xf)
+/* H264_INTR_MASK is defined in h264_ll.h */
 #define H264_SUP_MAX_CHANNEL      (2)
 #define H264_SCORE_LUMA           (6)
 #define H264_SCORE_CHROMA         (7)
