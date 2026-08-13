@@ -9,7 +9,11 @@
 #include "esp_heap_caps.h"
 
 #define ESP_H264_MEM_INTERNAL MALLOC_CAP_INTERNAL
-#define ESP_H264_MEM_SPIRAM   MALLOC_CAP_SPIRAM
+#if defined(MALLOC_CAP_SPIRAM_NO_ENC) && CONFIG_SPIRAM_ENC_EXEMPT
+#define ESP_H264_MEM_SPIRAM (MALLOC_CAP_SPIRAM | MALLOC_CAP_SPIRAM_NO_ENC)
+#else
+#define ESP_H264_MEM_SPIRAM MALLOC_CAP_SPIRAM
+#endif
 #define ALIGN_UP(num, align)  ((align) ? (((num) + ((align) - 1)) & ~((align) - 1)) : (num))
 
 /**

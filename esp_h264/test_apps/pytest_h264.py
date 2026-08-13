@@ -13,3 +13,11 @@ def test_h264_hw(dut: IdfDut) -> None:
 @pytest.mark.parametrize('target', ['esp32s31', 'esp32p4'], indirect=True)
 def test_h264_hw_v61(dut: IdfDut) -> None:
     dut.run_all_single_board_cases(timeout=20 * 60)
+
+
+@pytest.mark.esp32p4
+@pytest.mark.flash_encryption
+@pytest.mark.parametrize('target', ['esp32p4'], indirect=True)
+@pytest.mark.parametrize('config', ['flash_enc'], indirect=True)
+def test_h264_hw_flash_encryption(dut: IdfDut) -> None:
+    dut.run_all_single_board_cases(group='flash_encryption', timeout=5 * 60)

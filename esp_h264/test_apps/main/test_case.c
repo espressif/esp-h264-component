@@ -38,6 +38,31 @@ TEST_CASE("hw_rc_cumulative_error_saturation_test", "[esp_h264]")
     esp_h264_enc_hw_rc_del(rc_hd);
 }
 
+#if CONFIG_SECURE_FLASH_ENC_ENABLED
+TEST_CASE("hw_enc_internal_buffer_no_enc_test", "[esp_h264][flash_encryption]")
+{
+    esp_h264_enc_cfg_hw_t cfg = {
+        .pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY,
+        .gop = 5,
+        .fps = 30,
+        .res = {
+            .width = 1920,
+            .height = 1080,
+        },
+        .rc = {
+            .bitrate = 1920 * 1080 * 30 / 20,
+            .qp_min = 26,
+            .qp_max = 26,
+        },
+    };
+    esp_h264_enc_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+}
+#endif
+
 TEST_CASE("hw_enc_single_hw_enc_gop_test", "[esp_h264]")
 {
     for (int16_t gop = 1; gop < 256; gop++) {

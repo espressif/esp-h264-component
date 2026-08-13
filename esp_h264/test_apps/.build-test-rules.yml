@@ -1,5 +1,7 @@
 esp_h264/test_apps:
   enable:
     - if: IDF_TARGET in ["esp32p4", "esp32s3", "esp32s31"]
+  disable:
+    - if: CONFIG_NAME == "flash_enc" and IDF_TARGET != "esp32p4"
   depends_components:
     - esp_h264

@@ -40,7 +40,7 @@
     - set -eo pipefail
     - pip install --upgrade pytest pytest-embedded pytest-embedded-idf pytest-embedded-serial-esp pytest-rerunfailures pytest-timeout idf_build_apps
     - ls -la "${TEST_DIR}"/build_*/config/sdkconfig.json "${TEST_DIR}"/build_*/*.bin 2>/dev/null || ls -la "${TEST_DIR}"/build_*/ || true
-    - pytest "${TEST_DIR}" --target ${IDF_TARGET} -m "${IDF_TARGET}" --junitxml=XUNIT_RESULT.xml --parallel-count 1 --parallel-index 1
+    - pytest "${TEST_DIR}" --target ${IDF_TARGET} -m "${IDF_TARGET} and not flash_encryption" --junitxml=XUNIT_RESULT.xml --parallel-count 1 --parallel-index 1
 
 # ── IDF release-v5.5 jobs: esp32s3 + esp32p4 ──────────────────────────────
 test_v55_esp32s3:
