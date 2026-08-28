@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
+
+### Features
+
+- Added ESP32-S31 PIE assembly-optimized library support
+- Added ESP32-P4 prebuilt library support for two chip revisions and HWLP acceleration
 
 ### Fixes
 
