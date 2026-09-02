@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.3.8"
+#define ESP_H264_VERSION "1.4.0"
 
 /**
  *  Features:
@@ -72,6 +72,10 @@ extern "C" {
  *     - Fixed HW rate control and dual-stream force-IDR handling
  *     - Made HW force-IDR requests non-blocking
  *     - Added Chinese documentation and component registry metadata
+ *     v1.4.0:
+ *     - Added ESP32-S31 PIE assembly-optimized library support
+ *     - Added ESP32-P4 prebuilt library support for two chip revisions
+ *     - Allocated the HW deblocking buffer from non-encrypted PSRAM when supported
  */
 
 /**

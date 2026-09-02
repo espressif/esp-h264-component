@@ -38,7 +38,7 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 
 | ESP_H264 Version | ESP32-S3  | ESP32-S31 | ESP32-P4  |
 | ---------------- | --------- | --------- | --------- |
-| v1.3.8           | Supported | Supported | Supported |
+| v1.4.0           | Supported | Supported | Supported |
 
 ## Features
 
@@ -114,6 +114,33 @@ For the **dual task** decoder implementation, the performance is as follows:
 | 640 * 480  | ESP_H264_RAW_FMT_I420   | 2.5 M         | 11                    |
 | 320 * 192  | ESP_H264_RAW_FMT_I420   | 1.0 M         | 27                    |
 
+### Test on ESP32-S31
+
+#### SW Encoder
+
+| Resolution | Raw Format              | Memory (Byte) | FPS  |
+| ---------- | ----------------------- | ------------- | ---- |
+| 320 × 240  | ESP_H264_RAW_FMT_I420   | 1 M           | 14.2 |
+| 320 × 240  | ESP_H264_RAW_FMT_YUYV   | 1 M           | 13.6 |
+
+#### Decoder
+
+Memory consumption strongly depends on the H.264 stream resolution and encoded data.
+
+Single-task decoder:
+
+| Resolution  | Raw Format              | Memory (Byte) | FPS (C) | FPS (Assembly) |
+| ----------- | ----------------------- | ------------- | ------- | -------------- |
+| 1280 × 720  | ESP_H264_RAW_FMT_I420   | 6.2 M         | 4.6     | 5.6            |
+| 640 × 480   | ESP_H264_RAW_FMT_I420   | 2.5 M         | 12.3    | 15.4           |
+
+Dual-task decoder:
+
+| Resolution  | Raw Format              | Memory (Byte) | FPS (C) |
+| ----------- | ----------------------- | ------------- | ------- |
+| 1280 × 720  | ESP_H264_RAW_FMT_I420   | 6.2 M         | 6.4     |
+| 640 × 480   | ESP_H264_RAW_FMT_I420   | 2.5 M         | 16.9    |
+
 ### Test on chip ESP32-P4
 
 #### HW ENCODER
@@ -157,6 +184,10 @@ For the **dual task** decoder implementation, the performance is as follows:
 
 Please refer to the files test_apps/esp_h264\_\*\_test.c and test_apps/esp_h264\_\*\_test.h for more details on API usage.
 
+## Prebuilt Library Selection
+
+When using ESP32-S31, esp_h264 provides two prebuilt libraries and uses the C implementation by default. Enabling `CONFIG_ESP_H264_S31_USE_ASM` selects the assembly-optimized prebuilt library for improved performance, but consumes part of CPU Core 1 processing resources. Do not use the dual-task decoder when this option is enabled.
+
 # FAQ
 
 ## Performance Issues
@@ -179,3 +210,19 @@ Please refer to the files test_apps/esp_h264\_\*\_test.c and test_apps/esp_h264\
 - Lower resolution if possible (e.g., 640x480 instead of 1280x720)
 - Ensure adequate memory allocation
 - Check if the input H.264 stream uses the supported profile (constrained baseline)
+
+## Usage Under Encryption
+
+### Q: How do I use the hardware encoder on ESP32-P4 with PSRAM encryption enabled?
+
+**A:** The ESP-H264 hardware encoder uses DMA-related video buffers. When PSRAM encryption is enabled, encoder input and output buffers located in PSRAM must be allocated from an unencrypted memory region; otherwise, hardware encoding may fail.
+
+The component provides the following support for encryption:
+
+- When `CONFIG_SPIRAM_ENC_EXEMPT` is enabled, `ESP_H264_MEM_SPIRAM` includes the `MALLOC_CAP_SPIRAM_NO_ENC` capability and allocates buffers from the unencrypted PSRAM region.
+- `esp_h264_aligned_malloc()` and `esp_h264_aligned_calloc()` round the allocation size to cache-line alignment and add the `MALLOC_CAP_CACHE_ALIGNED` capability to the buffer.
+
+When using the component:
+
+1. Allocate encoder buffers through `esp_h264_aligned_malloc()` or `esp_h264_aligned_calloc()` with `ESP_H264_MEM_SPIRAM` as the capability argument to ensure the correct memory region and cache alignment.
+2. `CONFIG_SPIRAM_ENC_EXEMPT_SIZE` defines the size of the unencrypted PSRAM region. Buffer size depends on the maximum processed resolution, so configure it for the total buffers required by the component. Allocation fails if the region is insufficient. The unencrypted region is disabled if this value is greater than or equal to the physical PSRAM capacity.

@@ -1,0 +1,2 @@
+# ESP32-P4 v3.1+ CI profile. Target defaults provide REV_MIN_301.
+# CONFIG_ESP32P4_SELECTS_REV_LESS_V3 is not set
