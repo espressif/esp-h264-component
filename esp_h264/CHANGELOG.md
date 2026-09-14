@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+### Fixes
+
+- Fixed SW encoder YUV cache allocating 16 frames instead of one 16-byte-aligned I420 buffer (`calloc_prefer` `n` vs alignment)
+
 ## 1.4.0
 
 ### Features
