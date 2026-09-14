@@ -38,7 +38,7 @@ ESP_H264 is Espressif's lightweight H.264 encoder and decoder component, offerin
 
 | ESP_H264 Version | ESP32-S3  | ESP32-S31 | ESP32-P4  |
 | ---------------- | --------- | --------- | --------- |
-| v1.4.0           | Supported | Supported | Supported |
+| v1.4.1           | Supported | Supported | Supported |
 
 ## Features
 

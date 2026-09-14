@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.4.0"
+#define ESP_H264_VERSION "1.4.1"
 
 /**
  *  Features:
@@ -76,6 +76,8 @@ extern "C" {
  *     - Added ESP32-S31 PIE assembly-optimized library support
  *     - Added ESP32-P4 prebuilt library support for two chip revisions
  *     - Allocated the HW deblocking buffer from non-encrypted PSRAM when supported
+ *     v1.4.1:
+ *     - Fixed SW encoder YUV cache allocating 16 frames instead of one 16-byte-aligned I420 buffer
  */
 
 /**
