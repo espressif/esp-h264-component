@@ -1,0 +1,63 @@
+menu "Example Configuration"
+
+    config EXAMPLE_SRC_WIDTH
+        int "Generator width (pixels)"
+        default 1920
+        range 80 1920
+        help
+            Width of the single generator frame. Must be even and a multiple of 16.
+            1080P uses 1920x1088 (1080 rounded up to a multiple of 16).
+
+    config EXAMPLE_SRC_HEIGHT
+        int "Generator height (pixels)"
+        default 1088
+        range 80 2032
+        help
+            Height of the single generator frame. Must be even and a multiple of 16.
+
+    config EXAMPLE_PPA_SCALE_NUM
+        int "PPA scale numerator"
+        default 1
+        range 1 16
+        help
+            Stream 0 is PPA-scaled by NUM/DEN. Stream 1 keeps the generator resolution.
+
+    config EXAMPLE_PPA_SCALE_DEN
+        int "PPA scale denominator"
+        default 2
+        range 1 16
+        help
+            Stream 0 output size is SRC * NUM / DEN. PPA quantizes the ratio to 1/16
+            and, for YUV420, an even fragment. That size must equal SRC * NUM / DEN,
+            be a multiple of 16, and be at least 80.
+
+    config EXAMPLE_GEN_REALTIME
+        bool "Fill generator frames in realtime"
+        default y
+        help
+            Y: rewrite the color-bar every frame (motion).
+            N: fill GEN_SLOTS frames once, then recycle them (encode/PPA throughput).
+
+    config EXAMPLE_PPA_PARALLEL
+        bool "Run PPA in a separate task parallel to encoder"
+        default y
+        help
+            Y: generator -> PPA task -> encoder task (pipelined).
+            N: PPA and dual encode run serially in the encoder task.
+
+    config EXAMPLE_ENC_FPS
+        int "Signaled encoder FPS"
+        default 30
+        range 1 255
+
+    config EXAMPLE_ENC_GOP
+        int "Encoder GOP (same for both streams)"
+        default 30
+        range 1 255
+
+    config EXAMPLE_RUN_SECONDS
+        int "Measurement duration (seconds)"
+        default 8
+        range 1 600
+
+endmenu

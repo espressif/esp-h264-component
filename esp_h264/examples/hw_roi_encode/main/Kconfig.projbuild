@@ -1,0 +1,70 @@
+menu "Example Configuration"
+
+    config EXAMPLE_SRC_WIDTH
+        int "Generator width (pixels)"
+        default 1920
+        range 80 1920
+        help
+            Width of the generator frame. Must be even and a multiple of 16.
+            1080P uses 1920x1088 (1080 rounded up to a multiple of 16).
+
+    config EXAMPLE_SRC_HEIGHT
+        int "Generator height (pixels)"
+        default 1088
+        range 80 2032
+        help
+            Height of the generator frame. Must be even and a multiple of 16.
+
+    config EXAMPLE_GEN_REALTIME
+        bool "Fill generator frames in realtime"
+        default y
+        help
+            Y: rewrite the color-bar every frame (motion).
+            N: fill GEN_SLOTS frames once, then recycle them (encode throughput).
+
+    choice EXAMPLE_ROI_MODE
+        prompt "ROI mode"
+        default EXAMPLE_ROI_MODE_FIX_QP
+        help
+            Hardware H.264 ROI: lower QP in a center region, raise QP outside.
+
+        config EXAMPLE_ROI_MODE_FIX_QP
+            bool "Fixed QP in ROI"
+
+        config EXAMPLE_ROI_MODE_DELTA_QP
+            bool "Delta QP in ROI (added to slice QP)"
+
+        config EXAMPLE_ROI_MODE_DISABLE
+            bool "Disable ROI"
+    endchoice
+
+    config EXAMPLE_ROI_QP
+        int "ROI region QP / delta QP"
+        default 20
+        range -51 51
+        help
+            FIX_QP: absolute QP in [0, 51]. DELTA_QP: added to slice QP, range [-51, 51].
+
+    config EXAMPLE_NONE_ROI_DELTA_QP
+        int "Non-ROI delta QP"
+        default 12
+        range -51 51
+        help
+            Added to slice QP for the area outside the ROI.
+
+    config EXAMPLE_ENC_FPS
+        int "Signaled encoder FPS"
+        default 30
+        range 1 255
+
+    config EXAMPLE_ENC_GOP
+        int "Encoder GOP"
+        default 30
+        range 1 255
+
+    config EXAMPLE_RUN_SECONDS
+        int "Measurement duration (seconds)"
+        default 8
+        range 1 60
+
+endmenu
