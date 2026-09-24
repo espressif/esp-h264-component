@@ -1,0 +1,18 @@
+# HW encoder examples need H.264 HW (and PPA for ppa_gen), ESP32-P4 only.
+esp_h264/examples/hw_dual_enc_ppa_gen:
+  enable:
+    - if: IDF_TARGET == "esp32p4"
+  depends_components:
+    - esp_h264
+
+esp_h264/examples/hw_dual_enc_two_gen:
+  enable:
+    - if: IDF_TARGET == "esp32p4"
+  depends_components:
+    - esp_h264
+
+esp_h264/examples/hw_roi_encode:
+  enable:
+    - if: IDF_TARGET == "esp32p4"
+  depends_components:
+    - esp_h264

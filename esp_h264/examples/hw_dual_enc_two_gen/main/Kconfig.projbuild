@@ -1,0 +1,45 @@
+menu "Example Configuration"
+
+    config EXAMPLE_SRC0_WIDTH
+        int "Generator 0 width (pixels)"
+        default 1920
+        range 80 1920
+
+    config EXAMPLE_SRC0_HEIGHT
+        int "Generator 0 height (pixels)"
+        default 1088
+        range 80 2032
+
+    config EXAMPLE_SRC1_WIDTH
+        int "Generator 1 width (pixels)"
+        default 960
+        range 80 1920
+
+    config EXAMPLE_SRC1_HEIGHT
+        int "Generator 1 height (pixels)"
+        default 544
+        range 80 2032
+
+    config EXAMPLE_GEN_REALTIME
+        bool "Fill generator frames in realtime"
+        default y
+        help
+            Y: rewrite the color-bar every frame (motion).
+            N: fill GEN_SLOTS frames once, then recycle them (encode throughput).
+
+    config EXAMPLE_ENC_FPS
+        int "Signaled encoder FPS"
+        default 30
+        range 1 255
+
+    config EXAMPLE_ENC_GOP
+        int "Encoder GOP (same for both streams)"
+        default 30
+        range 1 255
+
+    config EXAMPLE_RUN_SECONDS
+        int "Measurement duration (seconds)"
+        default 8
+        range 1 60
+
+endmenu
