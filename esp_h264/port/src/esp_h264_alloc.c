@@ -11,9 +11,12 @@
 void *esp_h264_aligned_malloc(uint32_t alignment, uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps)
 {
     void *out_ptr = NULL;
-    uint32_t out_alignment = 0;
-    esp_cache_get_alignment(caps, (size_t *)&out_alignment);
-    *actual_size = ALIGN_UP(n * size, out_alignment);
+    size_t line = 0;
+    (void)esp_cache_get_alignment(caps, &line);
+    if (line > alignment) {
+        alignment = (uint32_t)line;
+    }
+    *actual_size = ALIGN_UP(n * size, alignment);
     caps |= MALLOC_CAP_CACHE_ALIGNED;
     out_ptr = heap_caps_aligned_alloc((size_t)alignment, (size_t) * actual_size, caps);
     if (out_ptr) {
@@ -25,9 +28,12 @@ void *esp_h264_aligned_malloc(uint32_t alignment, uint32_t n, uint32_t size, uin
 void *esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uint32_t *actual_size, uint32_t caps)
 {
     void *out_ptr = NULL;
-    uint32_t out_alignment = 0;
-    esp_cache_get_alignment(caps, (size_t *)&out_alignment);
-    *actual_size = ALIGN_UP(n * size, out_alignment);
+    size_t line = 0;
+    (void)esp_cache_get_alignment(caps, &line);
+    if (line > alignment) {
+        alignment = (uint32_t)line;
+    }
+    *actual_size = ALIGN_UP(n * size, alignment);
     caps |= MALLOC_CAP_CACHE_ALIGNED;
     out_ptr = heap_caps_aligned_calloc((size_t)alignment, 1, (size_t) * actual_size, caps);
     if (out_ptr) {
