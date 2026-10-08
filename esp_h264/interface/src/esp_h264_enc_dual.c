@@ -16,6 +16,17 @@ esp_h264_err_t esp_h264_enc_dual_open(esp_h264_enc_dual_handle_t enc)
     return enc->open(enc);
 }
 
+esp_h264_err_t esp_h264_enc_dual_process_one(esp_h264_enc_dual_handle_t enc, uint8_t encode_idx,
+        esp_h264_enc_in_frame_t *in_frame, esp_h264_enc_out_frame_t *out_frame)
+{
+    ESP_H264_RET_ON_FALSE(enc && in_frame && out_frame, ESP_H264_ERR_ARG, TAG, "Invalid h264 handle");
+    ESP_H264_RET_ON_FALSE(encode_idx < 2, ESP_H264_ERR_ARG, TAG, "Invalid encode index");
+    ESP_H264_RET_ON_FALSE(in_frame->raw_data.buffer, ESP_H264_ERR_ARG, TAG, "The buffer pointer of input frame is NULL.");
+    ESP_H264_RET_ON_FALSE(out_frame->raw_data.buffer, ESP_H264_ERR_ARG, TAG, "The buffer pointer of output frame is NULL.");
+    ESP_H264_RET_ON_FALSE(enc->process_one, ESP_H264_ERR_UNSUPPORTED, TAG, "Process one is not supported yet");
+    return enc->process_one(enc, encode_idx, in_frame, out_frame);
+}
+
 esp_h264_err_t esp_h264_enc_dual_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_in_frame_t *in_frame[2], esp_h264_enc_out_frame_t *out_frame[2])
 {
     ESP_H264_RET_ON_FALSE(enc && in_frame && out_frame, ESP_H264_ERR_ARG, TAG, "Invalid h264 handle");

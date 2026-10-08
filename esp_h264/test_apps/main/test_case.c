@@ -5,6 +5,8 @@
  */
 
 #include <string.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <unity.h>
 #include "esp_h264_hw_enc_test.h"
 #include "esp_h264_sw_enc_test.h"
@@ -1065,6 +1067,257 @@ TEST_CASE("hw_enc_dual_hw_out_buf_too_small_test", "[esp_h264]")
     esp_h264_free(out_frame1.raw_data.buffer);
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_close(enc));
     TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_del(enc));
+}
+
+/* process_one is 0 then 1 and blocking. Stop after stream1 of pair N plus stream0 of
+ * pair N+1 (stream1 of that pair never encoded), and stop after unpaired stream0.
+ * Both must close/del without timeout or leak — the HW is idle once process_one returns. */
+TEST_CASE("hw_enc_dual_process_one_stop_unpaired_test", "[esp_h264][process_one]")
+{
+    esp_h264_enc_cfg_dual_hw_t cfg = { 0 };
+    cfg.cfg0.gop = 5;
+    cfg.cfg0.fps = 30;
+    cfg.cfg0.res.width = res_width;
+    cfg.cfg0.res.height = res_height;
+    cfg.cfg0.rc.bitrate = cfg.cfg0.res.width * cfg.cfg0.res.height * cfg.cfg0.fps / 20;
+    cfg.cfg0.rc.qp_min = 26;
+    cfg.cfg0.rc.qp_max = 26;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+    cfg.cfg1 = cfg.cfg0;
+    cfg.cfg1.res.width = res_width1;
+    cfg.cfg1.res.height = res_height1;
+    cfg.cfg1.rc.bitrate = cfg.cfg1.res.width * cfg.cfg1.res.height * cfg.cfg1.fps / 20;
+
+    esp_h264_enc_dual_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_open(enc));
+
+    uint32_t in_len0 = (uint32_t)((float)cfg.cfg0.res.width * cfg.cfg0.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg0.pic_type));
+    uint32_t in_len1 = (uint32_t)((float)cfg.cfg1.res.width * cfg.cfg1.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg1.pic_type));
+    uint32_t out_len0 = in_len0;
+    uint32_t out_len1 = in_len1;
+    esp_h264_enc_in_frame_t in0 = { 0 };
+    esp_h264_enc_in_frame_t in1 = { 0 };
+    esp_h264_enc_out_frame_t out0 = { 0 };
+    esp_h264_enc_out_frame_t out1 = { 0 };
+    in0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, MALLOC_CAP_INTERNAL);
+    in1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, MALLOC_CAP_INTERNAL);
+    out0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_len0, &out_len0, MALLOC_CAP_INTERNAL);
+    out1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_len1, &out_len1, MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(in0.raw_data.buffer);
+    TEST_ASSERT_NOT_NULL(in1.raw_data.buffer);
+    TEST_ASSERT_NOT_NULL(out0.raw_data.buffer);
+    TEST_ASSERT_NOT_NULL(out1.raw_data.buffer);
+    in0.raw_data.len = in_len0;
+    in1.raw_data.len = in_len1;
+    out0.raw_data.len = out_len0;
+    out1.raw_data.len = out_len1;
+    memset(in0.raw_data.buffer, 0x5A, in_len0);
+    memset(in1.raw_data.buffer, 0xA5, in_len1);
+
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_ARG, esp_h264_enc_dual_process_one(enc, 1, &in1, &out1));
+
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_process_one(enc, 0, &in0, &out0));
+    TEST_ASSERT_GREATER_THAN(0, out0.length);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_process_one(enc, 1, &in1, &out1));
+    TEST_ASSERT_GREATER_THAN(0, out1.length);
+
+    /* Stream1 of the last pair is done. Encode stream0 of the next pair, then stop
+     * without stream1 — the case "enc1 finished, enc0 of the next pair has run". */
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_process_one(enc, 0, &in0, &out0));
+    TEST_ASSERT_GREATER_THAN(0, out0.length);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_del(enc));
+
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_hw_new(&cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_open(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_process_one(enc, 0, &in0, &out0));
+    TEST_ASSERT_GREATER_THAN(0, out0.length);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_dual_del(enc));
+
+    esp_h264_free(in0.raw_data.buffer);
+    esp_h264_free(in1.raw_data.buffer);
+    esp_h264_free(out0.raw_data.buffer);
+    esp_h264_free(out1.raw_data.buffer);
+}
+
+/* One 640x480 stream (to force overflow) plus one 128x128 stream. Two 640x480
+ * refs do not fit in internal RAM; ref buffers are INTERNAL-only. */
+static const char *process_one_overflow_case(uint8_t overflow_idx)
+{
+    const uint16_t large_w = 640;
+    const uint16_t large_h = 480;
+    const uint16_t small_w = 128;
+    const uint16_t small_h = 128;
+    const uint32_t small_out = 1200;
+    static char fail_buf[80];
+    const char *fail = NULL;
+    esp_h264_enc_dual_handle_t enc = NULL;
+    uint8_t *full0 = NULL;
+    uint8_t *full1 = NULL;
+    uint8_t *small_buf = NULL;
+    esp_h264_enc_in_frame_t in0 = { 0 };
+    esp_h264_enc_in_frame_t in1 = { 0 };
+    esp_h264_enc_out_frame_t out0 = { 0 };
+    esp_h264_enc_out_frame_t out1 = { 0 };
+    uint32_t in_len0 = 0;
+    uint32_t in_len1 = 0;
+    uint32_t full0_len = 0;
+    uint32_t full1_len = 0;
+    uint32_t small_actual = 0;
+    uint16_t w0 = (overflow_idx == 0) ? large_w : small_w;
+    uint16_t h0 = (overflow_idx == 0) ? large_h : small_h;
+    uint16_t w1 = (overflow_idx == 1) ? large_w : small_w;
+    uint16_t h1 = (overflow_idx == 1) ? large_h : small_h;
+
+    esp_h264_enc_cfg_dual_hw_t cfg = { 0 };
+    cfg.cfg0.gop = 30;
+    cfg.cfg0.fps = 30;
+    cfg.cfg0.res.width = w0;
+    cfg.cfg0.res.height = h0;
+    cfg.cfg0.rc.bitrate = (uint32_t)w0 * h0 * cfg.cfg0.fps / 2;
+    cfg.cfg0.rc.qp_min = 1;
+    cfg.cfg0.rc.qp_max = 1;
+    cfg.cfg0.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+    cfg.cfg1 = cfg.cfg0;
+    cfg.cfg1.res.width = w1;
+    cfg.cfg1.res.height = h1;
+    cfg.cfg1.rc.bitrate = (uint32_t)w1 * h1 * cfg.cfg1.fps / 2;
+
+    if (esp_h264_enc_dual_hw_new(&cfg, &enc) != ESP_H264_ERR_OK) {
+        fail = "dual_hw_new";
+        goto cleanup;
+    }
+    if (esp_h264_enc_dual_open(enc) != ESP_H264_ERR_OK) {
+        fail = "dual_open";
+        goto cleanup;
+    }
+
+    in_len0 = (uint32_t)((float)w0 * h0 * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg0.pic_type));
+    in_len1 = (uint32_t)((float)w1 * h1 * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg1.pic_type));
+    in0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, ESP_H264_MEM_SPIRAM);
+    in1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, ESP_H264_MEM_SPIRAM);
+    full0 = esp_h264_aligned_calloc(16, 1, in_len0, &full0_len, ESP_H264_MEM_SPIRAM);
+    full1 = esp_h264_aligned_calloc(16, 1, in_len1, &full1_len, ESP_H264_MEM_SPIRAM);
+    small_buf = esp_h264_aligned_calloc(16, 1, small_out, &small_actual, ESP_H264_MEM_SPIRAM);
+    if (!in0.raw_data.buffer || !in1.raw_data.buffer || !full0 || !full1 || !small_buf) {
+        fail = "alloc";
+        goto cleanup;
+    }
+    in0.raw_data.len = in_len0;
+    in1.raw_data.len = in_len1;
+
+    out0.raw_data.buffer = full0;
+    out0.raw_data.len = full0_len;
+    out1.raw_data.buffer = full1;
+    out1.raw_data.len = full1_len;
+    if (read_enc_cb(&in0, w0, h0, cfg.cfg0.pic_type) <= 0 ||
+            esp_h264_enc_dual_process_one(enc, 0, &in0, &out0) != ESP_H264_ERR_OK ||
+            out0.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        fail = "pair0 stream0 idr";
+        goto cleanup;
+    }
+    if (read_enc_cb(&in1, w1, h1, cfg.cfg1.pic_type) <= 0 ||
+            esp_h264_enc_dual_process_one(enc, 1, &in1, &out1) != ESP_H264_ERR_OK ||
+            out1.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        fail = "pair0 stream1 idr";
+        goto cleanup;
+    }
+
+    if (overflow_idx == 0) {
+        esp_h264_err_t ret;
+        out0.raw_data.buffer = small_buf;
+        out0.raw_data.len = small_actual;
+        if (read_enc_cb(&in0, w0, h0, cfg.cfg0.pic_type) <= 0) {
+            fail = "fill stream0";
+            goto cleanup;
+        }
+        ret = esp_h264_enc_dual_process_one(enc, 0, &in0, &out0);
+        if (ret != ESP_H264_ERR_OVERFLOW) {
+            snprintf(fail_buf, sizeof(fail_buf), "stream0 overflow ret=%d len=%u", (int)ret, (unsigned)out0.length);
+            fail = fail_buf;
+            goto cleanup;
+        }
+        if (esp_h264_enc_dual_process_one(enc, 0, &in0, &out0) != ESP_H264_ERR_ARG) {
+            fail = "stream0 retry";
+            goto cleanup;
+        }
+        out1.raw_data.buffer = full1;
+        out1.raw_data.len = full1_len;
+        if (read_enc_cb(&in1, w1, h1, cfg.cfg1.pic_type) <= 0 ||
+                esp_h264_enc_dual_process_one(enc, 1, &in1, &out1) != ESP_H264_ERR_OK) {
+            fail = "stream1 after stream0 overflow";
+            goto cleanup;
+        }
+    } else {
+        if (read_enc_cb(&in0, w0, h0, cfg.cfg0.pic_type) <= 0 ||
+                esp_h264_enc_dual_process_one(enc, 0, &in0, &out0) != ESP_H264_ERR_OK ||
+                out0.frame_type != ESP_H264_FRAME_TYPE_P) {
+            fail = "stream0 p before stream1 overflow";
+            goto cleanup;
+        }
+        esp_h264_err_t ret;
+        out1.raw_data.buffer = small_buf;
+        out1.raw_data.len = small_actual;
+        if (read_enc_cb(&in1, w1, h1, cfg.cfg1.pic_type) <= 0) {
+            fail = "fill stream1";
+            goto cleanup;
+        }
+        ret = esp_h264_enc_dual_process_one(enc, 1, &in1, &out1);
+        if (ret != ESP_H264_ERR_OVERFLOW) {
+            snprintf(fail_buf, sizeof(fail_buf), "stream1 overflow ret=%d len=%u", (int)ret, (unsigned)out1.length);
+            fail = fail_buf;
+            goto cleanup;
+        }
+    }
+
+    out0.raw_data.buffer = full0;
+    out0.raw_data.len = full0_len;
+    out1.raw_data.buffer = full1;
+    out1.raw_data.len = full1_len;
+    if (read_enc_cb(&in0, w0, h0, cfg.cfg0.pic_type) <= 0 ||
+            esp_h264_enc_dual_process_one(enc, 0, &in0, &out0) != ESP_H264_ERR_OK ||
+            out0.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        fail = "next pair stream0 idr";
+        goto cleanup;
+    }
+    if (read_enc_cb(&in1, w1, h1, cfg.cfg1.pic_type) <= 0 ||
+            esp_h264_enc_dual_process_one(enc, 1, &in1, &out1) != ESP_H264_ERR_OK ||
+            out1.frame_type != ESP_H264_FRAME_TYPE_IDR) {
+        fail = "next pair stream1 idr";
+        goto cleanup;
+    }
+
+cleanup:
+    if (in0.raw_data.buffer) {
+        esp_h264_free(in0.raw_data.buffer);
+    }
+    if (in1.raw_data.buffer) {
+        esp_h264_free(in1.raw_data.buffer);
+    }
+    if (full0) {
+        esp_h264_free(full0);
+    }
+    if (full1) {
+        esp_h264_free(full1);
+    }
+    if (small_buf) {
+        esp_h264_free(small_buf);
+    }
+    if (enc) {
+        (void)esp_h264_enc_dual_close(enc);
+        (void)esp_h264_enc_dual_del(enc);
+    }
+    return fail;
+}
+
+TEST_CASE("hw_enc_dual_process_one_overflow_forces_idr_test", "[esp_h264][process_one]")
+{
+    const char *fail0 = process_one_overflow_case(0);
+    TEST_ASSERT_NULL_MESSAGE(fail0, fail0);
+    const char *fail1 = process_one_overflow_case(1);
+    TEST_ASSERT_NULL_MESSAGE(fail1, fail1);
 }
 
 /* Round-trip test: feed every HW-encoded frame straight into the independent SW (tinyh264)
