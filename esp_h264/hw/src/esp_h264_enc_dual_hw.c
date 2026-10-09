@@ -24,6 +24,8 @@ typedef struct esp_h264_hw_handle {
     h264_dma_desc_t            *dsc_bs;
     uint8_t                     frame_num;
     uint8_t                     gop;
+    uint8_t                     next_idx;
+    bool                        pair_overflow;
     esp_h264_mutex_t            frame_done;
     esp_h264_intr_hd_t          intr_hd;
 #if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
@@ -208,6 +210,67 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
     return ESP_H264_ERR_OK;
 }
 
+static esp_h264_err_t enc_process_one(esp_h264_enc_dual_handle_t enc, uint8_t encode_idx,
+                                      esp_h264_enc_in_frame_t *in_frame, esp_h264_enc_out_frame_t *out_frame)
+{
+    ESP_H264_RET_ON_FALSE(encode_idx < 2, ESP_H264_ERR_ARG, TAG, "Invalid encode index");
+    ESP_H264_RET_ON_FALSE(in_frame && out_frame, ESP_H264_ERR_ARG, TAG, "Invalid frame pointer");
+    esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
+    ESP_H264_RET_ON_FALSE(encode_idx == hw_hd->next_idx, ESP_H264_ERR_ARG, TAG,
+                          "Encode index is out of order, idx %u expected %u", encode_idx, hw_hd->next_idx);
+    esp_h264_enc_param_hw_t *param_hd = (encode_idx == 0) ? hw_hd->param_hd0 : hw_hd->param_hd1;
+    out_frame->dts = in_frame->pts;
+    out_frame->pts = in_frame->pts;
+    out_frame->frame_type = ESP_H264_FRAME_TYPE_P;
+    if (encode_idx == 0) {
+        hw_hd->frame_num = hw_hd->frame_num % hw_hd->gop;
+        uint8_t gop0 = 0;
+        uint8_t gop1 = 0;
+        esp_h264_enc_get_gop(&hw_hd->param_hd0->base, &gop0);
+        esp_h264_enc_get_gop(&hw_hd->param_hd1->base, &gop1);
+        uint8_t gop = (uint8_t)(((uint16_t)gop0 + (uint16_t)gop1) >> 1);
+        bool force_idr = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd0)
+                         || esp_h264_enc_hw_take_force_idr(hw_hd->param_hd1);
+        if (force_idr || gop != hw_hd->gop || hw_hd->frame_num % hw_hd->gop == 0) {
+            out_frame->frame_type = ESP_H264_FRAME_TYPE_IDR;
+            hw_hd->gop = (gop0 + gop1) >> 1;
+            esp_h264_enc_set_gop(&hw_hd->param_hd0->base, hw_hd->gop);
+            esp_h264_enc_set_gop(&hw_hd->param_hd1->base, hw_hd->gop);
+            h264_hal_reset(&hw_hd->h264_hal);
+            h264_dma_hal_reset_counter_db(&hw_hd->dma2d_hal);
+            hw_hd->frame_num = 0;
+        }
+    } else if (hw_hd->frame_num == 0) {
+        out_frame->frame_type = ESP_H264_FRAME_TYPE_IDR;
+    }
+    esp_h264_cache_check_and_writeback(in_frame->raw_data.buffer, in_frame->raw_data.len);
+    esp_h264_mutex_t mutex;
+    esp_h264_enc_hw_get_mutex(param_hd, &mutex);
+    esp_h264_mutex_lock(mutex, ESP_H264_MAX_DELAY);
+    esp_h264_err_t ret = h264_hw_enc_frame_mode_process(hw_hd, param_hd,
+                         in_frame->raw_data.buffer, out_frame->raw_data.buffer,
+                         out_frame->raw_data.len, &out_frame->length);
+    esp_h264_mutex_unlock(mutex);
+    if (ret != ESP_H264_ERR_OK && ret != ESP_H264_ERR_OVERFLOW) {
+        hw_hd->frame_num = 0;
+        hw_hd->pair_overflow = false;
+    } else if (ret == ESP_H264_ERR_OVERFLOW) {
+        /* Either stream of the pair lost its bitstream. Keep 0→1 order; force
+         * the next pair to IDR on both streams once this pair finishes. */
+        hw_hd->pair_overflow = true;
+    }
+    if (encode_idx == 1) {
+        if (hw_hd->pair_overflow) {
+            hw_hd->frame_num = 0;
+        } else if (ret == ESP_H264_ERR_OK) {
+            hw_hd->frame_num++;
+        }
+        hw_hd->pair_overflow = false;
+    }
+    hw_hd->next_idx ^= 1;
+    return ret;
+}
+
 static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_in_frame_t *in_frame[2], esp_h264_enc_out_frame_t *out_frame[2])
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
@@ -287,19 +350,16 @@ static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_i
 static esp_h264_err_t enc_close(esp_h264_enc_dual_handle_t enc)
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
-    /** Free the interrupt */
+    h264_hal_ena_intr(&hw_hd->h264_hal, 0);
     if (hw_hd->intr_hd) {
         esp_h264_intr_free(hw_hd->intr_hd);
         hw_hd->intr_hd = NULL;
-        if (hw_hd->frame_done) {
-            esp_h264_mutex_delete(hw_hd->frame_done);
-        }
     }
-    /** Clear all interrupts */
-    h264_hal_ena_intr(&hw_hd->h264_hal, 0);
-    /** Reset H.264 */
+    if (hw_hd->frame_done) {
+        esp_h264_mutex_delete(hw_hd->frame_done);
+        hw_hd->frame_done = NULL;
+    }
     h264_hal_reset(&hw_hd->h264_hal);
-    /** Close DMA */
     h264_dma_hal_deinit(&hw_hd->dma2d_hal);
     return ESP_H264_ERR_OK;
 }
@@ -308,6 +368,8 @@ static esp_h264_err_t enc_open(esp_h264_enc_dual_handle_t enc)
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
     hw_hd->frame_num = 0;
+    hw_hd->next_idx = 0;
+    hw_hd->pair_overflow = false;
     /** Enable H.264 interrupt */
     if (esp_h264_intr_alloc(0, h264_frame_isr, (void *)hw_hd, &hw_hd->intr_hd) == ESP_OK) {
         hw_hd->frame_done = esp_h264_mutex_create();
@@ -331,12 +393,11 @@ static esp_h264_err_t enc_del(esp_h264_enc_dual_handle_t enc)
 {
     if (enc) {
         esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
+        enc_close(enc);
         if (hw_hd->db_tmp) {
             esp_h264_free(hw_hd->db_tmp);
+            hw_hd->db_tmp = NULL;
         }
-
-        /** Close the encoder */
-        enc_close(enc);
 
         /** Delete the parameter handle */
         esp_h264_enc_hw_del_param(hw_hd->param_hd0);
@@ -463,6 +524,7 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
     hw_hd->base.process = enc_process;
     hw_hd->base.close = enc_close;
     hw_hd->base.del = enc_del;
+    hw_hd->base.process_one = enc_process_one;
     *out_enc = &hw_hd->base;
     return ret;
 __exit__:

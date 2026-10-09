@@ -5,6 +5,7 @@
 ### Features
 
 - Added ESP32-P4 hardware encoder examples: dual-stream PPA scale-down (`hw_dual_enc_ppa_gen`), two-generator dual encode (`hw_dual_enc_two_gen`), and single-stream ROI (`hw_roi_encode`)
+- Added `esp_h264_enc_dual_process_one()` to support one-by-one dual encode (without waiting for both to finish), and example `hw_dual_enc_ppa_one`
 
 ## 1.4.1
 
