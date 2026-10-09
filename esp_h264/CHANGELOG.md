@@ -7,6 +7,11 @@
 - Added ESP32-P4 hardware encoder examples: dual-stream PPA scale-down (`hw_dual_enc_ppa_gen`), two-generator dual encode (`hw_dual_enc_two_gen`), and single-stream ROI (`hw_roi_encode`)
 - Added `esp_h264_enc_dual_process_one()` to support one-by-one dual encode (without waiting for both to finish), and example `hw_dual_enc_ppa_one`
 
+### Fixes
+
+- Aligned encoder buffers to `esp_cache_get_alignment(caps)` (P4 INTERNAL L1 64 B, SPIRAM L2 128 B) and invalidated the CPU-written slice-header line before DMA, so GOP=1 I-frames are not corrupted when a SPIRAM output slot is only 64-byte aligned. M2C expand uses the line of that address, not the PSRAM line on INTERNAL pointers
+- Sign-extended 7-bit `none_roi_delta_qp` on get so negative deltas round-trip
+
 ## 1.4.1
 
 ### Fixes

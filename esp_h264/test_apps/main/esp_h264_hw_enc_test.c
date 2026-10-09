@@ -1188,6 +1188,15 @@ _exit_dual_:
     return ret;
 }
 
+static int roi_cfg_mismatch(esp_h264_err_t get_ret, const esp_h264_enc_roi_cfg_t *got,
+                            const esp_h264_enc_roi_cfg_t *want)
+{
+    return (get_ret != ESP_H264_ERR_OK)
+           || (got->roi_mode != want->roi_mode)
+           || ((got->roi_mode != ESP_H264_ROI_MODE_DISABLE)
+               && (got->none_roi_delta_qp != want->none_roi_delta_qp));
+}
+
 /** ROI component*/
 esp_h264_err_t single_hw_enc_roi_cfg_test(esp_h264_enc_cfg_hw_t cfg)
 {
@@ -1255,11 +1264,9 @@ esp_h264_err_t single_hw_enc_roi_cfg_test(esp_h264_enc_cfg_hw_t cfg)
             }
             write_enc_cb(&out_frame);
             ret = esp_h264_enc_hw_get_roi_cfg_info(param_hd, &cfg_get);
-            if (ret != ESP_H264_ERR_OK
-                    || cfg_get.roi_mode != roi_cfg.roi_mode
-                    || ((cfg_get.roi_mode != ESP_H264_ROI_MODE_DISABLE)
-                        && (cfg_get.none_roi_delta_qp != roi_cfg.none_roi_delta_qp))) {
+            if (roi_cfg_mismatch(ret, &cfg_get, &roi_cfg)) {
                 printf("ROI process error. %d %d %d line %d \n", cfg_get.roi_mode, cfg_get.none_roi_delta_qp, roi_cfg.none_roi_delta_qp, __LINE__);
+                ret = ESP_H264_ERR_FAIL;
                 goto _exit_;
             }
         }
@@ -1375,11 +1382,9 @@ esp_h264_err_t dual_hw_enc_roi_cfg_test(esp_h264_enc_cfg_dual_hw_t cfg)
                 write_enc_cb(out_frame[i]);
             }
             ret = esp_h264_enc_hw_get_roi_cfg_info(param_hd, &cfg_get);
-            if (ret != ESP_H264_ERR_OK
-                    || cfg_get.roi_mode != roi_cfg.roi_mode
-                    || ((cfg_get.roi_mode != ESP_H264_ROI_MODE_DISABLE)
-                        && (cfg_get.none_roi_delta_qp != roi_cfg.none_roi_delta_qp))) {
+            if (roi_cfg_mismatch(ret, &cfg_get, &roi_cfg)) {
                 printf("ROI process error. %d %d %d line %d \n", cfg_get.roi_mode, cfg_get.none_roi_delta_qp, roi_cfg.none_roi_delta_qp, __LINE__);
+                ret = ESP_H264_ERR_FAIL;
                 goto _exit_dual_;
             }
         }

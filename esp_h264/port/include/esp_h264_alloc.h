@@ -14,7 +14,8 @@
 #else
 #define ESP_H264_MEM_SPIRAM MALLOC_CAP_SPIRAM
 #endif
-#define ALIGN_UP(num, align)  ((align) ? (((num) + ((align) - 1)) & ~((align) - 1)) : (num))
+#define ALIGN_UP(num, align)    ((align) ? (((num) + ((align) - 1)) & ~((align) - 1)) : (num))
+#define ALIGN_DOWN(num, align)  ((align) ? ((num) & ~((align) - 1)) : (num))
 
 /**
  * @brief  Free memory previously allocated
@@ -27,7 +28,7 @@
  * @note   Memory is not initialized (same semantics as malloc).
  *
  * @param[in]   alignment    How the pointer received needs to be aligned must be a power of two.
- *                           If the value is less than cache line size, the value will be forced cache line size.
+ *                           Raised to `esp_cache_get_alignment(caps)` (P4: INTERNAL 64 B, SPIRAM 128 B).
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
  * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
@@ -45,7 +46,7 @@ void *esp_h264_aligned_malloc(uint32_t alignment, uint32_t n, uint32_t size, uin
  * @note   Memory is zero-initialized (same semantics as calloc).
  *
  * @param[in]   alignment    How the pointer received needs to be aligned must be a power of two.
- *                           If the value is less than cache line size, the value will be forced cache line size.
+ *                           Raised to `esp_cache_get_alignment(caps)` (P4: INTERNAL 64 B, SPIRAM 128 B).
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
  * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership

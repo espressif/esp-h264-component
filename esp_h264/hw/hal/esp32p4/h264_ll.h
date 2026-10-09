@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -496,6 +496,11 @@ static inline void h264_ll_set_roi_cfg(volatile h264_ctrl_regs_t *ctrl, uint8_t 
     ctrl->no_roi_region_qp_offset.no_roi_region_qp = none_roi_qp;
 }
 
+static inline int8_t h264_ll_sign_extend7(uint32_t val)
+{
+    return (int8_t)(((val & 0x7Fu) ^ 0x40u) - 0x40u);
+}
+
 /**
  * @brief  Get range of interesting (ROI) mode
  *
@@ -509,7 +514,7 @@ static inline void h264_ll_set_roi_cfg(volatile h264_ctrl_regs_t *ctrl, uint8_t 
 static inline void h264_ll_get_roi_cfg(volatile h264_ctrl_regs_t *ctrl, uint8_t *mode, int8_t *none_roi_qp)
 {
     *mode = ctrl->roi_config.roi_mode;
-    *none_roi_qp = ctrl->no_roi_region_qp_offset.no_roi_region_qp;
+    *none_roi_qp = h264_ll_sign_extend7(ctrl->no_roi_region_qp_offset.no_roi_region_qp);
 }
 
 /**
