@@ -25,7 +25,7 @@ ENDIF ()
 IF (${IDF_TARGET} STREQUAL "esp32p4")
 
 list(APPEND public_include_dirs "./hw/include")
-list(APPEND private_include_dirs  "./hw/hal/esp32p4" "./hw/soc/esp32p4")
+list(APPEND private_include_dirs "./hw/src" "./hw/hal/esp32p4" "./hw/soc/esp32p4")
 
 if(CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
     set(target_lib_path "esp32p4_less_v3")

@@ -9,6 +9,10 @@
 #include "esp_heap_caps.h"
 #include "sdkconfig.h"
 
+#if CONFIG_IDF_TARGET_ESP32P4
+void h264_pm_boot_log(void);
+#endif
+
 #define TEST_MEMORY_LEAK_THRESHOLD (300)
 
 void setUp(void)
@@ -39,5 +43,8 @@ void app_main(void)
     printf("  | |  __/\\__ \\ |_  | |    | | | |_____  | |___| |       | | \n");
     printf("  \\_/\\___||___/\\__| |_|    |_| |_______| |_______|       |_| \n");
 
+#if CONFIG_IDF_TARGET_ESP32P4
+    h264_pm_boot_log();
+#endif
     unity_run_menu();
 }
