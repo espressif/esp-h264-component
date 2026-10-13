@@ -1,10 +1,11 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "esp_h264_efuse.h"
+#include "h264_sleep_retention.h"
 #include "esp_h264_alloc.h"
 #include "esp_h264_enc_single_hw.h"
 #include "esp_h264_enc_hw_param.h"
@@ -156,6 +157,7 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
     if (esp_h264_mutex_lock(hw_hd->frame_done, (TickType_t)H264_TIME_OUT) != pdTRUE) {
         *out_len = 0;
         uint32_t bs_intraw = h264_dma_hal_get_bs_intr(&hw_hd->dma2d_hal);
+        uint32_t h264_st = h264_hal_get_intr_status(&hw_hd->h264_hal);
         h264_hal_reset(&hw_hd->h264_hal);
         h264_dma_hal_reset_counter_dbtmp(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_db(&hw_hd->dma2d_hal);
@@ -164,7 +166,7 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
             ESP_H264_LOGE(TAG, "The out buffer is too small. \n");
             return ESP_H264_ERR_MEM;
         }
-        ESP_H264_LOGE(TAG, "Timeout");
+        ESP_H264_LOGE(TAG, "Timeout: h264_intr=0x%" PRIx32 " bs_ch4_intr_raw=0x%" PRIx32, h264_st, bs_intraw);
         return ESP_H264_ERR_TIMEOUT;
     }
     *out_len = h264_hal_get_coded_len(&hw_hd->h264_hal);
@@ -220,7 +222,8 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
     out_frame->frame_type = ESP_H264_FRAME_TYPE_P;
     uint8_t gop = 0;
     esp_h264_enc_get_gop(&hw_hd->param_hd->base, &gop);
-    bool force_idr = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd);
+    bool force_idr = esp_h264_enc_hw_take_force_idr(hw_hd->param_hd)
+                     || h264_sleep_retention_hw_lost();
     /** Intra (I-frame) check */
     if (force_idr || gop != hw_hd->gop || hw_hd->frame_num % hw_hd->gop == 0) {
         /** Currently, the I-frame is instantaneous decoding refresh frame(IDR-frame).
@@ -247,9 +250,11 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
      *  frame back to IDR here too, matching how other (fatal) errors are already handled. */
     if (ret != ESP_H264_ERR_OK) {
         hw_hd->frame_num = 0;
+        h264_sleep_retention_arm_canary();
         return ret;
     }
     hw_hd->frame_num++;
+    h264_sleep_retention_arm_canary();
     return ret;
 }
 
@@ -290,6 +295,7 @@ static esp_h264_err_t enc_open(esp_h264_enc_handle_t enc)
                           | H264_INTR_BS_BIT_OVERFLOW
 #endif
                          );
+        h264_sleep_retention_arm_canary();
         return ESP_H264_ERR_OK;
     }
     /** Close the encoder */
@@ -301,6 +307,7 @@ static esp_h264_err_t enc_del(esp_h264_enc_handle_t enc)
 {
     if (enc) {
         esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
+        h264_sleep_retention_free();
         if (hw_hd->db_tmp) {
             esp_h264_free(hw_hd->db_tmp);
         }
@@ -341,7 +348,8 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 
     /* Parameter initalization */
     *out_enc = NULL;
-    esp_h264_err_t ret = ESP_H264_ERR_OK;
+    esp_h264_err_t ret = h264_sleep_retention_acquire();
+    ESP_H264_RET_ON_FALSE(ret == ESP_H264_ERR_OK, ret, TAG, "Failed to acquire sleep retention");
     h264_hal_context_cfg_t cfg_h264_hal = { 0 };
     cfg_h264_hal.dual_stream_en = false;
     cfg_h264_hal.gop = cfg->gop;
@@ -383,7 +391,11 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
     /** Create encoder handle */
     uint32_t actual_size;
     esp_h264_hw_handle_t *hw_hd = (esp_h264_hw_handle_t *)esp_h264_calloc_prefer(1, sizeof(esp_h264_hw_handle_t), &actual_size, ESP_H264_MEM_SPIRAM, ESP_H264_MEM_INTERNAL);
-    ESP_H264_RET_ON_FALSE(hw_hd != NULL, ESP_H264_ERR_MEM, TAG, "No memory for handle");
+    if (hw_hd == NULL) {
+        h264_sleep_retention_free();
+        ESP_H264_LOGE(TAG, "No memory for handle");
+        return ESP_H264_ERR_MEM;
+    }
 
     /** H.264 HAL initalization*/
     h264_hal_init(&hw_hd->h264_hal, &cfg_h264_hal);
@@ -406,17 +418,17 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 #endif
 
     /** Allocated de-blocking filter temporary parameter memory*/
-    hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(16, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(cfg->res.width), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(cfg->res.width), &actual_size, ESP_H264_MEM_INTERNAL);
     ESP_H264_GOTO_ON_FALSE(hw_hd->db_tmp != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for db_tmp");
 
     /** Allocated descriptor memory*/
     for (size_t i = 0; i < 2; i++) {
-        hw_hd->dsc_dbtmp[i] = esp_h264_aligned_calloc(16, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+        hw_hd->dsc_dbtmp[i] = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
         ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_dbtmp[i] != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for DB descriptor");
     }
-    hw_hd->dsc_yuv = esp_h264_aligned_calloc(16, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->dsc_yuv = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
     ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_yuv != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for YUV descriptor");
-    hw_hd->dsc_bs = esp_h264_aligned_calloc(16, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->dsc_bs = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
     ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_bs != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for BS descriptor");
 
     /** Configure de-blocking filter temporary parameter and de-blocking data, reference picture DMA*/
@@ -434,6 +446,7 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 __exit__:
     /** Delete the encoder handle */
     enc_del(&hw_hd->base);
+    *out_enc = NULL;
     return ret;
 }
 

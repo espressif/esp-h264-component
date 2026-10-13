@@ -8,11 +8,12 @@ set(srcs
 IF (${IDF_TARGET} STREQUAL "esp32p4") 
 set(srcs
  "test_app_main.c"
+ "test_case.c"
  "esp_h264_hw_enc_test.c"
  "esp_h264_sw_enc_test.c"
  "esp_h264_sw_dec_test.c"
  "h264_io.c"
- "test_case.c")
+ "esp_h264_hw_sleep_retention.c")
 ENDIF ()
 
 set(priv_requires
@@ -21,6 +22,8 @@ set(priv_requires
         unity
         esp_psram
         esp_timer
+        esp_hw_support
+        esp_pm
 )
 
 idf_component_register(SRCS ${srcs}

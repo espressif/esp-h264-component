@@ -693,6 +693,37 @@ static inline uint32_t h264_ll_get_coded_len(h264_dev_t *h264)
     return h264->frame_code_length.frame_code_length;
 }
 
+/** Magic written to debug_dma_sel (not in REGDMA) to detect TOP PD / HW reset */
+#define H264_LL_TOP_PD_CANARY  0xA5U
+
+/**
+ * @brief  Arm the TOP-PD canary in debug_dma_sel
+ *
+ * `debug_dma_sel` is a debug DMA-select (reset 0, unused by encode). After TOP
+ * PD REGDMA does not restore it, so the register reads 0; without TOP PD the
+ * magic remains.
+ *
+ * @param  h264  H.264 peripheral address
+ */
+static inline void h264_ll_arm_top_pd_canary(h264_dev_t *h264)
+{
+    h264->debug_dma_sel.val = H264_LL_TOP_PD_CANARY;
+}
+
+/**
+ * @brief  Return true if debug_dma_sel no longer holds the TOP-PD canary
+ *
+ * @param  h264  H.264 peripheral address
+ *
+ * @return
+ *       - true   Register reset to 0 (TOP PD or sys_rst_pulse)
+ *       - false  Canary still present
+ */
+static inline bool h264_ll_top_pd_lost(h264_dev_t *h264)
+{
+    return h264->debug_dma_sel.val != H264_LL_TOP_PD_CANARY;
+}
+
 #if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) < 300
 
 /**

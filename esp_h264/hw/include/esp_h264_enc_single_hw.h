@@ -27,10 +27,13 @@ typedef esp_h264_enc_cfg_t esp_h264_enc_cfg_hw_t;
  * @param[in]   cfg      It is a pointer to the `esp_h264_enc_cfg_hw_t` structure, which contains the configuration settings for the encoder
  * @param[out]  out_enc  It is a double pointer to the `esp_h264_enc_t` structure, which will store the created encoder instance
  *
+ * @note  On any error, `*out_enc` is NULL when `out_enc` itself is valid
+ *
  * @return
- *       - ESP_H264_ERR_OK   Succeeded
- *       - ESP_H264_ERR_ARG  Invalid arguments passed
- *       - ESP_H264_ERR_MEM  Insufficient memory, the `*out_enc` will be set NULL
+ *       - ESP_H264_ERR_OK    Succeeded
+ *       - ESP_H264_ERR_ARG   Invalid arguments passed
+ *       - ESP_H264_ERR_MEM   Insufficient memory
+ *       - ESP_H264_ERR_FAIL  Sleep retention acquire failed
  */
 esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_enc_handle_t *out_enc);
 

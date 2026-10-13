@@ -26,6 +26,7 @@ extern "C" {
 #define ESP_H264_MAX_WIDTH    (1920)
 #define ESP_H264_MAX_HEIGHT   (2032)
 #define HW_DMA_BUF_ALIGN_SIZE (7)
+#define H264_DMA_ALIGN        H264_DMA_MACRO_SIZE
 #define H264_TIME_OUT         (1000)
 
 /**

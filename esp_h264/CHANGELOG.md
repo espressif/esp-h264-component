@@ -6,6 +6,7 @@
 
 - Added ESP32-P4 hardware encoder examples: dual-stream PPA scale-down (`hw_dual_enc_ppa_gen`), two-generator dual encode (`hw_dual_enc_two_gen`), and single-stream ROI (`hw_roi_encode`)
 - Added `esp_h264_enc_dual_process_one()` to support one-by-one dual encode (without waiting for both to finish), and example `hw_dual_enc_ppa_one`
+- Added HW encoder (P4) light-sleep REGDMA retention (`h264_sleep_retention_*`, gated by `H264_USE_RETENTION_LINK`). After TOP PD a non-REGDMA canary (`debug_dma_sel`) forces the next encode to IDR
 
 ### Fixes
 

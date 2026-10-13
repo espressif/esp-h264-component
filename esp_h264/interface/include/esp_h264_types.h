@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -17,8 +17,7 @@ extern "C" {
 #define ESP_H264_4CC(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
 /**
- * @brief  The given code snippet defines a structure called `esp_h264_err_t`
- *         It is an enumeration that represents different error codes for H.264 video encoding operations
+ * @brief  Error codes for ESP_H264 encoder and decoder
  */
 typedef enum {
     ESP_H264_ERR_OK             = 0,   /*<! Succeeded */
@@ -183,12 +182,12 @@ typedef struct {
 } esp_h264_enc_in_frame_t;
 
 /**
- * @brief  Data stream information after encoding
+ * @brief  Decoder output for one picture (or empty if NAL was not a coded slice)
  */
 typedef struct {
     esp_h264_frame_type_t frame_type;  /*<! Frame type */
-    uint8_t              *outbuf;      /*<! Decoder data stream  */
-    uint32_t              out_size;    /*<! Actual length of decoder data in bytes */
+    uint8_t              *outbuf;      /*<! Decoded picture buffer (e.g. I420); owned by decoder, valid until next process */
+    uint32_t              out_size;    /*<! Decoded picture size in bytes (0 if no picture this call) */
     uint32_t              dts;         /*<! Decoding time stamp(DTS)
                                             The timestamp of the decoder when decoding relative to SCR(system reference time).
                                             It mainly identifies when the bit stream read into memory begins to be sent to the decoder for decoding.*/
@@ -201,7 +200,7 @@ typedef struct {
 } esp_h264_dec_out_frame_t;
 
 /**
- * @brief  Data stream information before encoding
+ * @brief  Decoder input: one chunk of H.264 elementary stream
  *
  * @note  User needs to process the `consume` as follows:
  *
@@ -246,8 +245,8 @@ typedef struct {
 #if !defined(CONFIG_ESP_REV_MIN_FULL) || CONFIG_ESP_REV_MIN_FULL < 300
 
 /**
- * @brief  Check if picture type is supported by hardware (HW Version 3)
- * @note   HW Version 3 only supports ESP_H264_RAW_FMT_O_UYY_E_VYY format
+ * @brief  Check if picture type is supported by hardware (HW Version 1/2)
+ * @note   HW Version 1/2 (CONFIG_ESP_REV_MIN_FULL < 300) only supports ESP_H264_RAW_FMT_O_UYY_E_VYY format
  * @param  pic_type  Picture format type to check
  * @return true if supported, false otherwise
  */
@@ -257,9 +256,8 @@ typedef struct {
 #else
 
 /**
- * @brief  Check if picture type is supported by hardware (HW Version 1/2)
- * @note   HW Version 1/2 supports multiple formats including:
- *         - ESP_H264_RAW_FMT_GREY (Grayscale)
+ * @brief  Check if picture type is supported by hardware (HW Version 3+)
+ * @note   HW Version 3+ (CONFIG_ESP_REV_MIN_FULL >= 300) supports multiple formats including:
  *         - ESP_H264_RAW_FMT_BGR888 (24-bit RGB)
  *         - ESP_H264_RAW_FMT_RGB565_LE (16-bit RGB Little-Endian)
  *         - ESP_H264_RAW_FMT_VUY (YUV 4:4:4)
@@ -275,7 +273,7 @@ typedef struct {
      (pic_type) == ESP_H264_RAW_FMT_UYVY || \
      (pic_type) == ESP_H264_RAW_FMT_O_UYY_E_VYY)
 
-#endif  /* defined(CONFIG_ESP_REV_MIN_FULL) && CONFIG_ESP_REV_MIN_FULL < 300 */
+#endif  /* !defined(CONFIG_ESP_REV_MIN_FULL) || CONFIG_ESP_REV_MIN_FULL < 300 */
 
 #ifdef __cplusplus
 }
