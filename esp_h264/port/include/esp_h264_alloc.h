@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -9,6 +9,15 @@
 #include "esp_heap_caps.h"
 
 #define ESP_H264_MEM_INTERNAL MALLOC_CAP_INTERNAL
+/**
+ * Internal RAM that the H.264 hardware DMA can reach. On ESP32-P4 the RTC RAM (LP SRAM)
+ * and SPM heap regions also carry `MALLOC_CAP_INTERNAL` but not `MALLOC_CAP_DMA`; a buffer
+ * served from them is silently ignored by the encoder DMA, so every buffer the hardware
+ * encoder reads or writes through DMA must be allocated with this capability instead of
+ * `ESP_H264_MEM_INTERNAL`. On a fragmented heap the allocation then fails with NULL
+ * instead of producing a corrupt stream.
+ */
+#define ESP_H264_MEM_INTERNAL_DMA (MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA)
 #if defined(MALLOC_CAP_SPIRAM_NO_ENC) && CONFIG_SPIRAM_ENC_EXEMPT
 #define ESP_H264_MEM_SPIRAM (MALLOC_CAP_SPIRAM | MALLOC_CAP_SPIRAM_NO_ENC)
 #else
@@ -32,7 +41,7 @@
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
  * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
- * @param[in]   caps         ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps         ESP_H264_MEM_INTERNAL, ESP_H264_MEM_INTERNAL_DMA or ESP_H264_MEM_SPIRAM
  *
  * @return
  *       - NULL    Failure
@@ -50,7 +59,7 @@ void *esp_h264_aligned_malloc(uint32_t alignment, uint32_t n, uint32_t size, uin
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
  * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
- * @param[in]   caps         ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps         ESP_H264_MEM_INTERNAL, ESP_H264_MEM_INTERNAL_DMA or ESP_H264_MEM_SPIRAM
  *
  * @return
  *       - NULL    Failure
@@ -64,8 +73,8 @@ void *esp_h264_aligned_calloc(uint32_t alignment, uint32_t n, uint32_t size, uin
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
  * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
- * @param[in]   caps1        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
- * @param[in]   caps2        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps1        ESP_H264_MEM_INTERNAL, ESP_H264_MEM_INTERNAL_DMA or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps2        ESP_H264_MEM_INTERNAL, ESP_H264_MEM_INTERNAL_DMA or ESP_H264_MEM_SPIRAM
  *
  * @return
  *       - NULL    Failure
@@ -79,8 +88,8 @@ void *esp_h264_malloc_prefer(uint32_t n, uint32_t size, uint32_t *actual_size, u
  * @param[in]   n            Number of continuing chunks of memory to allocate
  * @param[in]   size         Size, in bytes, of a chunk of memory to allocate
  * @param[out]  actual_size  Aligned allocation size in bytes; caller retains ownership
- * @param[in]   caps1        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
- * @param[in]   caps2        ESP_H264_MEM_INTERNAL or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps1        ESP_H264_MEM_INTERNAL, ESP_H264_MEM_INTERNAL_DMA or ESP_H264_MEM_SPIRAM
+ * @param[in]   caps2        ESP_H264_MEM_INTERNAL, ESP_H264_MEM_INTERNAL_DMA or ESP_H264_MEM_SPIRAM
  *
  * @return
  *       - NULL    Failure

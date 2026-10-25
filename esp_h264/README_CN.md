@@ -184,6 +184,16 @@ API 用法详见 `test_apps/esp_h264_*_test.c` 与 `test_apps/esp_h264_*_test.h`
 - 保证内存分配充足
 - 确认码流为支持的 Constrained Baseline profile
 
+## 内存位置
+
+### Q: 在 ESP32-P4 上，IDR 帧正常，但之后每个 P 帧都会偏色（色度漂移，每个宏块行底部亮度出错），为什么？
+
+**A:** 硬件编码器通过 DMA 读写其工作缓冲区。ESP32-P4 的堆中还包含 RTC RAM（LP SRAM，`0x50108000`）和 SPM 区域，它们都满足 `MALLOC_CAP_INTERNAL`，但 H.264 DMA 无法访问。当内部堆碎片化、仅以 `MALLOC_CAP_INTERNAL` 申请的缓冲区被分配到这些区域时，DMA 写入会被丢弃，编码器的参考帧与解码器的重建结果不再一致，直到下一个 IDR 之前的每个 P 帧都会出错，而码流本身仍然合法。
+
+- 组件自身的 DMA 缓冲区（去块滤波临时缓冲区、参考窗口、DB 缓冲区和 DMA 描述符）均使用 `ESP_H264_MEM_INTERNAL_DMA`（`MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA`）分配。若碎片化的堆无法提供可供 DMA 访问的内部内存，`esp_h264_enc_open()`/`esp_h264_enc_hw_new()` 会以 `No memory for ...` 失败，而不是输出损坏的码流。
+- 传给硬件编码器的输入、输出帧缓冲区也应遵守同样的规则：使用 `ESP_H264_MEM_SPIRAM` 分配，或在必须放在内部 RAM 时使用 `ESP_H264_MEM_INTERNAL_DMA`；不要单独使用 `MALLOC_CAP_INTERNAL` 或 `MALLOC_CAP_DEFAULT`。
+- 在内存紧张的系统上，建议尽早创建编码器（在堆碎片化之前），或在多次会话间保持编码器实例，以便在仍有大块可 DMA 访问的内存时完成内部工作区的分配。
+
 ## 加密场景下的使用
 
 ### Q: 在启用 PSRAM 加密的 ESP32-P4 上，如何使用硬件编码器？

@@ -211,6 +211,16 @@ When using ESP32-S31, esp_h264 provides two prebuilt libraries and uses the C im
 - Ensure adequate memory allocation
 - Check if the input H.264 stream uses the supported profile (constrained baseline)
 
+## Memory Placement
+
+### Q: On ESP32-P4, IDR frames are fine but every P frame drifts (wrong chroma, luma errors at the bottom of each macroblock row). Why?
+
+**A:** The hardware encoder reads and writes its working buffers through DMA. On ESP32-P4 the heap also contains the RTC RAM (LP SRAM at `0x50108000`) and SPM regions; both satisfy `MALLOC_CAP_INTERNAL`, but the H.264 DMA cannot access them. When the internal heap is fragmented and a buffer requested with `MALLOC_CAP_INTERNAL` alone is served from one of these regions, the DMA write is dropped, the encoder's reference frame no longer matches the decoder's reconstruction, and every P frame until the next IDR is corrupted while the bitstream itself stays valid.
+
+- The component allocates its own DMA buffers (deblocking temp buffer, reference window, DB buffer and DMA descriptors) with `ESP_H264_MEM_INTERNAL_DMA` (`MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA`). If the fragmented heap cannot provide DMA-capable internal memory, `esp_h264_enc_open()`/`esp_h264_enc_hw_new()` fail with `No memory for ...` instead of producing a corrupt stream.
+- Apply the same rule to the input and output frame buffers you hand to the hardware encoder: allocate them with `ESP_H264_MEM_SPIRAM`, or with `ESP_H264_MEM_INTERNAL_DMA` when they must live in internal RAM. Do not use `MALLOC_CAP_INTERNAL` or `MALLOC_CAP_DEFAULT` alone.
+- On memory-tight systems create the encoder early (before the heap fragments), or keep it alive across sessions, so its internal workspaces are allocated while large DMA-capable blocks are still available.
+
 ## Usage Under Encryption
 
 ### Q: How do I use the hardware encoder on ESP32-P4 with PSRAM encryption enabled?

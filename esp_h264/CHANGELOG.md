@@ -12,6 +12,7 @@
 
 - Aligned encoder buffers to `esp_cache_get_alignment(caps)` (P4 INTERNAL L1 64 B, SPIRAM L2 128 B) and invalidated the CPU-written slice-header line before DMA, so GOP=1 I-frames are not corrupted when a SPIRAM output slot is only 64-byte aligned. M2C expand uses the line of that address, not the PSRAM line on INTERNAL pointers
 - Sign-extended 7-bit `none_roi_delta_qp` on get so negative deltas round-trip
+- Fixed HW encoder (P4) internal DMA buffers (`db_tmp`, reference window, DB buffer and all DMA descriptors) being requested with `MALLOC_CAP_INTERNAL` only. On ESP32-P4 the RTC RAM (LP SRAM) and SPM heap regions also satisfy `MALLOC_CAP_INTERNAL` but are not reachable by the H.264 DMA, so on a fragmented heap `db_tmp` could be served from RTC RAM and every P frame was silently corrupted (chroma drift, IDR frames clean). Added `ESP_H264_MEM_INTERNAL_DMA` (`MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA`) and used it for these buffers, so allocation fails instead of producing a corrupt stream
 
 ## 1.4.1
 
