@@ -155,14 +155,14 @@ TEST_CASE("h264_hw_enc_single_light_sleep_then_encode_again", "[esp_h264][pm]")
     esp_h264_enc_out_frame_t out_frame = { 0 };
     esp_h264_enc_handle_t enc = NULL;
     in_frame.raw_data.len = (int)((float)width * height * ESP_H264_GET_BPP_BY_PIC_TYPE(pic));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (in_frame.raw_data.buffer == NULL) {
         fail = "in_buf";
         goto cleanup;
     }
     /* HW path: out is H.264 ES capacity, not YUV size (see esp_h264_enc_single.h). Extra headroom for IDR + RC after wake. */
     out_frame.raw_data.len = in_frame.raw_data.len * 2;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (out_frame.raw_data.buffer == NULL) {
         fail = "out_buf";
         goto cleanup;
@@ -291,8 +291,8 @@ TEST_CASE("h264_hw_enc_dual_light_sleep_then_encode_again", "[esp_h264][pm]")
 
     in0.raw_data.len = (int)((float)aw0 * ah0 * ESP_H264_GET_BPP_BY_PIC_TYPE(pic));
     in1.raw_data.len = (int)((float)aw1 * ah1 * ESP_H264_GET_BPP_BY_PIC_TYPE(pic));
-    in0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in0.raw_data.len, &in0.raw_data.len, ESP_H264_MEM_INTERNAL);
-    in1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in1.raw_data.len, &in1.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in0.raw_data.len, &in0.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
+    in1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in1.raw_data.len, &in1.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (in0.raw_data.buffer == NULL || in1.raw_data.buffer == NULL) {
         fail = "in_buf";
         goto cleanup;
@@ -300,8 +300,8 @@ TEST_CASE("h264_hw_enc_dual_light_sleep_then_encode_again", "[esp_h264][pm]")
 
     out0.raw_data.len = in0.raw_data.len * 2;
     out1.raw_data.len = in1.raw_data.len * 2;
-    out0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out0.raw_data.len, &out0.raw_data.len, ESP_H264_MEM_INTERNAL);
-    out1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out1.raw_data.len, &out1.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out0.raw_data.len, &out0.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
+    out1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out1.raw_data.len, &out1.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (out0.raw_data.buffer == NULL || out1.raw_data.buffer == NULL) {
         fail = "out_buf";
         goto cleanup;

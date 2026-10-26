@@ -273,13 +273,13 @@ esp_h264_err_t single_hw_enc_process(esp_h264_enc_cfg_hw_t cfg)
     uint16_t width = ((cfg.res.width + 15) >> 4 << 4);
     uint16_t height = ((cfg.res.height + 15) >> 4 << 4);
     in_frame.raw_data.len = (int)((float)width * height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d %d %d %d\n", width,  height, (int)in_frame.raw_data.len, __LINE__);
         goto _exit_;
     }
     out_frame.raw_data.len = in_frame.raw_data.len;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
@@ -355,13 +355,13 @@ esp_h264_err_t dual_hw_enc_process(esp_h264_enc_cfg_dual_hw_t cfg)
             goto _exit_dual_;
         }
         in_frame[i]->raw_data.len = out_length[i];
-        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!in_frame[i]->raw_data.buffer) {
             printf("mem allocation failed.line %d \n", __LINE__);
             goto _exit_dual_;
         }
         out_frame[i]->raw_data.len = out_length[i];
-        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!out_frame[i]->raw_data.buffer) {
             printf("mem allocation failed. line %d \n", __LINE__);
             goto _exit_dual_;
@@ -588,13 +588,13 @@ esp_h264_err_t single_hw_enc_force_idr_test(esp_h264_enc_cfg_hw_t cfg)
     uint16_t height = ((cfg.res.height + 15) >> 4 << 4);
 
     in_frame.raw_data.len = (int)((float)width * height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed. line %d\n", __LINE__);
         goto _exit_;
     }
     out_frame.raw_data.len = in_frame.raw_data.len;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed. line %d\n", __LINE__);
         goto _exit_;
@@ -709,9 +709,9 @@ esp_h264_err_t dual_hw_enc_force_idr_test(esp_h264_enc_cfg_dual_hw_t cfg)
             goto _exit_dual_;
         }
         in_frame[i]->raw_data.len = out_length[i];
-        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         out_frame[i]->raw_data.len = out_length[i];
-        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!in_frame[i]->raw_data.buffer || !out_frame[i]->raw_data.buffer) {
             printf("mem allocation failed. line %d\n", __LINE__);
             ret = ESP_H264_ERR_MEM;
@@ -1043,13 +1043,13 @@ esp_h264_err_t dual_hw_enc_thread_test(esp_h264_enc_cfg_dual_hw_t cfg)
             goto _exit_dual_;
         }
         in_frame[i]->raw_data.len = out_length[i];
-        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!in_frame[i]->raw_data.buffer) {
             printf("mem allocation failed.line %d \n", __LINE__);
             goto _exit_dual_;
         }
         out_frame[i]->raw_data.len = out_length[i];
-        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!out_frame[i]->raw_data.buffer) {
             printf("mem allocation failed. line %d \n", __LINE__);
             goto _exit_dual_;
@@ -1214,13 +1214,13 @@ esp_h264_err_t single_hw_enc_roi_cfg_test(esp_h264_enc_cfg_hw_t cfg)
         .none_roi_delta_qp = -51,
     };
     in_frame.raw_data.len = (int)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
     }
     out_frame.raw_data.len = (int)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type)) / 10;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
@@ -1318,13 +1318,13 @@ esp_h264_err_t dual_hw_enc_roi_cfg_test(esp_h264_enc_cfg_dual_hw_t cfg)
             goto _exit_dual_;
         }
         in_frame[i]->raw_data.len = out_length[i];
-        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!in_frame[i]->raw_data.buffer) {
             printf("mem allocation failed.line %d \n", __LINE__);
             goto _exit_dual_;
         }
         out_frame[i]->raw_data.len = out_length[i];
-        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!out_frame[i]->raw_data.buffer) {
             printf("mem allocation failed. line %d \n", __LINE__);
             goto _exit_dual_;
@@ -1424,13 +1424,13 @@ esp_h264_err_t single_hw_enc_roi_reg_test(esp_h264_enc_cfg_hw_t cfg)
     esp_h264_enc_roi_reg_t roi_reg[8] = { 0 };
     esp_h264_enc_roi_reg_t roi_reg1[8] = { 0 };
     in_frame.raw_data.len = (int)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
     }
     out_frame.raw_data.len = (int)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type)) / 10;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _exit_;
@@ -1593,13 +1593,13 @@ esp_h264_err_t dual_hw_enc_roi_reg_test(esp_h264_enc_cfg_dual_hw_t cfg)
             goto _exit_dual_;
         }
         in_frame[i]->raw_data.len = out_length[i];
-        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!in_frame[i]->raw_data.buffer) {
             printf("mem allocation failed.line %d \n", __LINE__);
             goto _exit_dual_;
         }
         out_frame[i]->raw_data.len = out_length[i];
-        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!out_frame[i]->raw_data.buffer) {
             printf("mem allocation failed. line %d \n", __LINE__);
             goto _exit_dual_;
@@ -1763,20 +1763,20 @@ esp_h264_err_t single_hw_enc_mv_pkt_test(esp_h264_enc_cfg_hw_t cfg)
 
     mv_pkt.len = ((cfg.res.width + 15) >> 4) * ((cfg.res.height + 15) >> 4);
     mv_pkt.len *= sizeof(*mv_pkt.data);
-    mv_pkt.data = esp_h264_aligned_calloc(16, 1, mv_pkt.len, &mv_pkt.len, ESP_H264_MEM_INTERNAL);
+    mv_pkt.data = esp_h264_aligned_calloc(16, 1, mv_pkt.len, &mv_pkt.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!mv_pkt.data) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _mv_pkt_exit_;
     }
 
     in_frame.raw_data.len = (int)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!in_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _mv_pkt_exit_;
     }
     out_frame.raw_data.len = (int)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type)) / 10;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame.raw_data.len, &out_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
     if (!out_frame.raw_data.buffer) {
         printf("mem allocation failed.line %d \n", __LINE__);
         goto _mv_pkt_exit_;
@@ -1881,7 +1881,7 @@ esp_h264_err_t dual_hw_enc_mv_pkt_test(esp_h264_enc_cfg_dual_hw_t cfg)
     for (int16_t i = 0; i < 2; i++) {
         mv_pkt[i].len = ((width[i] + 15) >> 4) * ((height[i] + 15) >> 4);
         mv_pkt[i].len *= sizeof(*mv_pkt[i].data);
-        mv_pkt[i].data = esp_h264_aligned_calloc(16, 1, mv_pkt[i].len, &mv_pkt[i].len, ESP_H264_MEM_INTERNAL);
+        mv_pkt[i].data = esp_h264_aligned_calloc(16, 1, mv_pkt[i].len, &mv_pkt[i].len, ESP_H264_MEM_INTERNAL_DMA);
         if (!mv_pkt[i].data) {
             printf("mem allocation failed.line %d \n", __LINE__);
             goto _exit_dual_;
@@ -1897,13 +1897,13 @@ esp_h264_err_t dual_hw_enc_mv_pkt_test(esp_h264_enc_cfg_dual_hw_t cfg)
             goto _exit_dual_;
         }
         in_frame[i]->raw_data.len = out_length[i];
-        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        in_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame[i]->raw_data.len, &in_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!in_frame[i]->raw_data.buffer) {
             printf("mem allocation failed.line %d \n", __LINE__);
             goto _exit_dual_;
         }
         out_frame[i]->raw_data.len = out_length[i];
-        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL);
+        out_frame[i]->raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_frame[i]->raw_data.len, &out_frame[i]->raw_data.len, ESP_H264_MEM_INTERNAL_DMA);
         if (!out_frame[i]->raw_data.buffer) {
             printf("mem allocation failed. line %d \n", __LINE__);
             goto _exit_dual_;

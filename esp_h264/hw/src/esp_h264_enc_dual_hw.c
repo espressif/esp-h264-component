@@ -217,6 +217,9 @@ static esp_h264_err_t enc_process_one(esp_h264_enc_dual_handle_t enc, uint8_t en
 {
     ESP_H264_RET_ON_FALSE(encode_idx < 2, ESP_H264_ERR_ARG, TAG, "Invalid encode index");
     ESP_H264_RET_ON_FALSE(in_frame && out_frame, ESP_H264_ERR_ARG, TAG, "Invalid frame pointer");
+    ESP_H264_RET_ON_FALSE(esp_h264_buf_dma_reachable(in_frame->raw_data.buffer) &&
+                          esp_h264_buf_dma_reachable(out_frame->raw_data.buffer),
+                          ESP_H264_ERR_ARG, TAG, "Frame buffer is not DMA-reachable");
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
     ESP_H264_RET_ON_FALSE(encode_idx == hw_hd->next_idx, ESP_H264_ERR_ARG, TAG,
                           "Encode index is out of order, idx %u expected %u", encode_idx, hw_hd->next_idx);
@@ -278,6 +281,12 @@ static esp_h264_err_t enc_process_one(esp_h264_enc_dual_handle_t enc, uint8_t en
 static esp_h264_err_t enc_process(esp_h264_enc_dual_handle_t enc, esp_h264_enc_in_frame_t *in_frame[2], esp_h264_enc_out_frame_t *out_frame[2])
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
+    if (!esp_h264_buf_dma_reachable(in_frame[0]->raw_data.buffer) ||
+            !esp_h264_buf_dma_reachable(in_frame[1]->raw_data.buffer) ||
+            !esp_h264_buf_dma_reachable(out_frame[0]->raw_data.buffer) ||
+            !esp_h264_buf_dma_reachable(out_frame[1]->raw_data.buffer)) {
+        return ESP_H264_ERR_ARG;
+    }
     hw_hd->frame_num = hw_hd->frame_num % hw_hd->gop;
     out_frame[0]->dts = in_frame[0]->pts;
     out_frame[0]->pts = in_frame[0]->pts;
@@ -451,7 +460,6 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
     uint8_t mb_height[H264_SUP_MAX_CHANNEL];
     h264_hal_context_cfg_t cfg_h264_hal = { 0 };
     esp_h264_enc_hw_param_cfg_t param_cfg[H264_SUP_MAX_CHANNEL] = { 0 };
-    esp_h264_enc_param_hw_t *param_hd[H264_SUP_MAX_CHANNEL] = { NULL };
     int width = cfg->cfg0.res.width > cfg->cfg1.res.width ? cfg->cfg0.res.width : cfg->cfg1.res.width;
     for (uint8_t i = 0; i < H264_SUP_MAX_CHANNEL; i++) {
         mb_width[i] = (enc_cfg[i].res.width + 15) >> 4;
@@ -508,32 +516,35 @@ esp_h264_err_t esp_h264_enc_dual_hw_new(const esp_h264_enc_cfg_dual_hw_t *cfg, e
     param_cfg[0].device = h264_hal_get_param_dev0(&hw_hd->h264_hal);
     param_cfg[1].device = h264_hal_get_param_dev1(&hw_hd->h264_hal);
 
+    /* Bind each param handle before the next allocation. enc_del() only frees
+     * hw_hd->param_hd0 / param_hd1, so a later DMA failure must still see them. */
+    esp_h264_enc_param_hw_t **param_out[H264_SUP_MAX_CHANNEL] = {
+        &hw_hd->param_hd0, &hw_hd->param_hd1
+    };
     for (uint8_t i = 0; i < H264_SUP_MAX_CHANNEL; i++) {
         /** Set the macroblock resolution */
         h264_hal_set_mbres(param_cfg[i].device, mb_width[i], mb_height[i]);
         /** Create a new parameter handle */
-        ret = esp_h264_enc_hw_new_param(&param_cfg[i], &param_hd[i]);
+        ret = esp_h264_enc_hw_new_param(&param_cfg[i], param_out[i]);
         ESP_H264_GOTO_ON_FALSE(ret == ESP_H264_ERR_OK, ret, __exit__, TAG, "No memory for param handle");
         /** Configure parameter*/
-        esp_h264_enc_set_gop(&param_hd[i]->base, enc_cfg[i].gop);
+        esp_h264_enc_set_gop(&(*param_out[i])->base, enc_cfg[i].gop);
     }
     /** Allocated de-blocking filter temporary parameter memory*/
-    hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(width), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(width), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(hw_hd->db_tmp != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for db_tmp");
     /** Allocated descriptor memory*/
     for (size_t i = 0; i < 2; i++) {
-        hw_hd->dsc_dbtmp[i] = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+        hw_hd->dsc_dbtmp[i] = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
         ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_dbtmp[i] != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for DB descriptor");
     }
-    hw_hd->dsc_yuv = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->dsc_yuv = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_yuv != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for YUV descriptor");
-    hw_hd->dsc_bs = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->dsc_bs = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_bs != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for BS descriptor");
 
     /** Encoder handle configure */
     hw_hd->gop = cfg_h264_hal.gop;
-    hw_hd->param_hd0 = param_hd[0];
-    hw_hd->param_hd1 = param_hd[1];
     hw_hd->base.open = enc_open;
     hw_hd->base.process = enc_process;
     hw_hd->base.close = enc_close;

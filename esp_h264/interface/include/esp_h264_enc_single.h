@@ -52,7 +52,7 @@ esp_h264_err_t esp_h264_enc_open(esp_h264_enc_handle_t enc);
  *        `width = ((width +15) >> 4 << 4);`
  *        `height = ((height+15) >> 4 << 4);`
  *        `in_frame.raw_data.len = ( width * height + (width * height >> 1));`
- *        `in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, MALLOC_CAP_DEFAULT);`
+ *        `in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_frame.raw_data.len, &in_frame.raw_data.len, ESP_H264_MEM_INTERNAL_DMA);`
  *        Allocate `out_frame.raw_data.buffer` with at least `in_frame.raw_data.len` bytes so the
  *        encoded bitstream does not exceed the output buffer. If the encoded size is larger than
  *        the output buffer, the function returns ESP_H264_ERR_MEM.
