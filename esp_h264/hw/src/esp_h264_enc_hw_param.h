@@ -16,6 +16,7 @@
 #include "esp_h264_mutex.h"
 #include "esp_h264_cache.h"
 #include "esp_h264_check.h"
+#include "esp_memory_utils.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +29,12 @@ extern "C" {
 #define HW_DMA_BUF_ALIGN_SIZE (7)
 #define H264_DMA_ALIGN        H264_DMA_MACRO_SIZE
 #define H264_TIME_OUT         (1000)
+
+/* RTC RAM and SPM are internal but not DMA-reachable. SPIRAM is external. */
+static inline bool esp_h264_buf_dma_reachable(const void *buf)
+{
+    return (buf != NULL) && (esp_ptr_dma_capable(buf) || esp_ptr_external_ram(buf));
+}
 
 /**
  * @brief  Configure information

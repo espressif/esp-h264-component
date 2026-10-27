@@ -217,6 +217,10 @@ static esp_h264_err_t enc_process(esp_h264_enc_handle_t enc, esp_h264_enc_in_fra
 {
     esp_h264_hw_handle_t *hw_hd = __containerof(enc, esp_h264_hw_handle_t, base);
     esp_h264_err_t ret = ESP_H264_ERR_OK;
+    if (!esp_h264_buf_dma_reachable(in_frame->raw_data.buffer) ||
+            !esp_h264_buf_dma_reachable(out_frame->raw_data.buffer)) {
+        return ESP_H264_ERR_ARG;
+    }
     out_frame->dts = in_frame->pts;
     out_frame->pts = in_frame->pts;
     out_frame->frame_type = ESP_H264_FRAME_TYPE_P;
@@ -418,17 +422,17 @@ esp_h264_err_t esp_h264_enc_hw_new(const esp_h264_enc_cfg_hw_t *cfg, esp_h264_en
 #endif
 
     /** Allocated de-blocking filter temporary parameter memory*/
-    hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(cfg->res.width), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->db_tmp = (uint8_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, esp_h264_enc_hw_max_db_tmp_buffer_size(cfg->res.width), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(hw_hd->db_tmp != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for db_tmp");
 
     /** Allocated descriptor memory*/
     for (size_t i = 0; i < 2; i++) {
-        hw_hd->dsc_dbtmp[i] = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+        hw_hd->dsc_dbtmp[i] = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
         ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_dbtmp[i] != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for DB descriptor");
     }
-    hw_hd->dsc_yuv = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->dsc_yuv = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_yuv != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for YUV descriptor");
-    hw_hd->dsc_bs = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    hw_hd->dsc_bs = esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(hw_hd->dsc_bs != NULL, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for BS descriptor");
 
     /** Configure de-blocking filter temporary parameter and de-blocking data, reference picture DMA*/

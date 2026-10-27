@@ -975,7 +975,7 @@ TEST_CASE("hw_enc_single_hw_out_buf_too_small_test", "[esp_h264]")
 
     esp_h264_enc_in_frame_t in_frame = { 0 };
     uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, ESP_H264_MEM_INTERNAL_DMA);
     in_frame.raw_data.len = in_len;
     TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
 
@@ -983,7 +983,7 @@ TEST_CASE("hw_enc_single_hw_out_buf_too_small_test", "[esp_h264]")
      * `raw_data.len` is set too small so the SPS/PPS size check is what triggers the error. */
     esp_h264_enc_out_frame_t out_frame = { 0 };
     uint32_t out_actual_size = 0;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, ESP_H264_MEM_INTERNAL_DMA);
     TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
     out_frame.raw_data.len = 4;
 
@@ -1026,23 +1026,23 @@ TEST_CASE("hw_enc_dual_hw_out_buf_too_small_test", "[esp_h264]")
 
     esp_h264_enc_in_frame_t in_frame0 = { 0 };
     uint32_t in_len0 = (uint32_t)((float)cfg.cfg0.res.width * cfg.cfg0.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg0.pic_type));
-    in_frame0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, MALLOC_CAP_INTERNAL);
+    in_frame0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, ESP_H264_MEM_INTERNAL_DMA);
     in_frame0.raw_data.len = in_len0;
     TEST_ASSERT_NOT_NULL(in_frame0.raw_data.buffer);
 
     esp_h264_enc_in_frame_t in_frame1 = { 0 };
     uint32_t in_len1 = (uint32_t)((float)cfg.cfg1.res.width * cfg.cfg1.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.cfg1.pic_type));
-    in_frame1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, MALLOC_CAP_INTERNAL);
+    in_frame1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, ESP_H264_MEM_INTERNAL_DMA);
     in_frame1.raw_data.len = in_len1;
     TEST_ASSERT_NOT_NULL(in_frame1.raw_data.buffer);
 
     uint32_t out_actual_size = 0;
     esp_h264_enc_out_frame_t out_frame0 = { 0 };
-    out_frame0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, MALLOC_CAP_INTERNAL);
+    out_frame0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, ESP_H264_MEM_INTERNAL_DMA);
     TEST_ASSERT_NOT_NULL(out_frame0.raw_data.buffer);
 
     esp_h264_enc_out_frame_t out_frame1 = { 0 };
-    out_frame1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, MALLOC_CAP_INTERNAL);
+    out_frame1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, 128, &out_actual_size, ESP_H264_MEM_INTERNAL_DMA);
     TEST_ASSERT_NOT_NULL(out_frame1.raw_data.buffer);
 
     esp_h264_enc_in_frame_t *in_frame_dual[2] = { &in_frame0, &in_frame1 };
@@ -1101,10 +1101,10 @@ TEST_CASE("hw_enc_dual_process_one_stop_unpaired_test", "[esp_h264][process_one]
     esp_h264_enc_in_frame_t in1 = { 0 };
     esp_h264_enc_out_frame_t out0 = { 0 };
     esp_h264_enc_out_frame_t out1 = { 0 };
-    in0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, MALLOC_CAP_INTERNAL);
-    in1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, MALLOC_CAP_INTERNAL);
-    out0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_len0, &out_len0, MALLOC_CAP_INTERNAL);
-    out1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_len1, &out_len1, MALLOC_CAP_INTERNAL);
+    in0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len0, &in_len0, ESP_H264_MEM_INTERNAL_DMA);
+    in1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len1, &in_len1, ESP_H264_MEM_INTERNAL_DMA);
+    out0.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_len0, &out_len0, ESP_H264_MEM_INTERNAL_DMA);
+    out1.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_len1, &out_len1, ESP_H264_MEM_INTERNAL_DMA);
     TEST_ASSERT_NOT_NULL(in0.raw_data.buffer);
     TEST_ASSERT_NOT_NULL(in1.raw_data.buffer);
     TEST_ASSERT_NOT_NULL(out0.raw_data.buffer);
@@ -1349,13 +1349,13 @@ TEST_CASE("hw_enc_sw_dec_roundtrip_test", "[esp_h264]")
 
     esp_h264_enc_in_frame_t in_frame = { 0 };
     uint32_t in_len = (uint32_t)((float)enc_cfg.res.width * enc_cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(enc_cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, ESP_H264_MEM_INTERNAL_DMA);
     in_frame.raw_data.len = in_len;
     TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
 
     esp_h264_enc_out_frame_t out_frame = { 0 };
     uint32_t out_buf_len = in_len;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, ESP_H264_MEM_INTERNAL_DMA);
     out_frame.raw_data.len = out_buf_len;
     TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
 
@@ -1665,13 +1665,13 @@ TEST_CASE("hw_enc_annexb_no_forbidden_sequence_test", "[esp_h264]")
 
     esp_h264_enc_in_frame_t in_frame = { 0 };
     uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, ESP_H264_MEM_INTERNAL_DMA);
     in_frame.raw_data.len = in_len;
     TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
 
     esp_h264_enc_out_frame_t out_frame = { 0 };
     uint32_t out_buf_len = in_len;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, ESP_H264_MEM_INTERNAL_DMA);
     out_frame.raw_data.len = out_buf_len;
     TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
 
@@ -1724,13 +1724,13 @@ TEST_CASE("hw_enc_set_fps_regenerates_sps_test", "[esp_h264]")
 
     esp_h264_enc_in_frame_t in_frame = { 0 };
     uint32_t in_len = (uint32_t)((float)cfg.res.width * cfg.res.height * ESP_H264_GET_BPP_BY_PIC_TYPE(cfg.pic_type));
-    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, MALLOC_CAP_INTERNAL);
+    in_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, in_len, &in_len, ESP_H264_MEM_INTERNAL_DMA);
     in_frame.raw_data.len = in_len;
     TEST_ASSERT_NOT_NULL(in_frame.raw_data.buffer);
 
     esp_h264_enc_out_frame_t out_frame = { 0 };
     uint32_t out_buf_len = in_len;
-    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    out_frame.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, ESP_H264_MEM_INTERNAL_DMA);
     out_frame.raw_data.len = out_buf_len;
     TEST_ASSERT_NOT_NULL(out_frame.raw_data.buffer);
 

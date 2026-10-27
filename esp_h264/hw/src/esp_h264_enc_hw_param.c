@@ -265,6 +265,9 @@ static esp_h264_err_t get_mv_cfg_info(esp_h264_enc_param_hw_handle_t handle, esp
 
 static esp_h264_err_t set_mv_pkt(esp_h264_enc_param_hw_handle_t handle, esp_h264_enc_mvm_pkt_t mv_pkt)
 {
+    if ((mv_pkt.data != NULL) && !esp_h264_buf_dma_reachable(mv_pkt.data)) {
+        return ESP_H264_ERR_ARG;
+    }
     esp_h264_param_t *param = __containerof(handle, esp_h264_param_t, hw_base);
     param->mvm_buf = (uint8_t *)mv_pkt.data;
     param->mvm_buf_len = mv_pkt.len;
@@ -379,19 +382,19 @@ esp_h264_err_t esp_h264_enc_hw_new_param(esp_h264_enc_hw_param_cfg_t *cfg, esp_h
     param->nal_bit_len += esp_h264_enc_set_pps(param->nal_buf + (param->nal_bit_len >> 3), param->nal_buf_len - (param->nal_bit_len >> 3), param->qp_init, true);
 
     /** Allocated reference frame and DB memory (malloc: large buffers, no need to zero) */
-    param->ref = (uint8_t *)esp_h264_aligned_malloc(H264_DMA_ALIGN, 1, max_refame_buffer_size(param->mb_width), &actual_size, ESP_H264_MEM_INTERNAL);
+    param->ref = (uint8_t *)esp_h264_aligned_malloc(H264_DMA_ALIGN, 1, max_refame_buffer_size(param->mb_width), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(param->ref, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for reference frame");
-    param->db = (uint8_t *)esp_h264_malloc_prefer(1, max_db_buffer_size(param->mb_width, param->mb_height), &actual_size, ESP_H264_MEM_INTERNAL, ESP_H264_MEM_SPIRAM);
+    param->db = (uint8_t *)esp_h264_malloc_prefer(1, max_db_buffer_size(param->mb_width, param->mb_height), &actual_size, ESP_H264_MEM_INTERNAL_DMA, ESP_H264_MEM_SPIRAM);
     ESP_H264_GOTO_ON_FALSE(param->db, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for data");
 
     /** Allocated descriptor memory*/
-    param->dsc_ref = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    param->dsc_ref = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(param->dsc_ref, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for reference descriptor");
     for (size_t i = 0; i < 4; i++) {
-        param->dsc_db[i] = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+        param->dsc_db[i] = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
         ESP_H264_GOTO_ON_FALSE(param->dsc_db[i], ESP_H264_ERR_MEM, __exit__, TAG, "No memory for DB descriptor");
     }
-    param->dsc_mvm = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL);
+    param->dsc_mvm = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(param->dsc_mvm, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for MVM descriptor");
 
     /** Create MUTEX */

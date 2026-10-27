@@ -10,6 +10,7 @@ set(srcs
  "test_app_main.c"
  "test_case.c"
  "esp_h264_hw_enc_test.c"
+ "esp_h264_hw_enc_dma_rtc_test.c"
  "esp_h264_sw_enc_test.c"
  "esp_h264_sw_dec_test.c"
  "h264_io.c"

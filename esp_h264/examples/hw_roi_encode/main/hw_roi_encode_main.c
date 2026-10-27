@@ -64,7 +64,7 @@ static uint8_t *s_alloc_frame(uint32_t need, uint32_t *out_len)
     uint32_t actual = 0;
     uint8_t *buf = esp_h264_aligned_calloc(16, 1, need, &actual, ESP_H264_MEM_SPIRAM);
     if (buf == NULL) {
-        buf = esp_h264_aligned_calloc(16, 1, need, &actual, ESP_H264_MEM_INTERNAL);
+        buf = esp_h264_aligned_calloc(16, 1, need, &actual, ESP_H264_MEM_INTERNAL_DMA);
     }
     if (out_len) {
         *out_len = actual;
