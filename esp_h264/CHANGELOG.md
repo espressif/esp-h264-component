@@ -10,6 +10,7 @@
 
 ### Fixes
 
+- Used `esp_flash_encryption_enabled()` below IDF 6.0.1. `esp_efuse_is_flash_encryption_enabled()` is only declared from 6.0.1, so IDF 6.0.0 failed to compile
 - Request `MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA` for HW encoder buffers the DMA touches (`db_tmp`, reference, deblock, descriptors). On ESP32-P4, RTC RAM and SPM are internal but not DMA-reachable; allocating them there used to corrupt every P frame until the next IDR without an error
 - Free a dual-encoder parameter handle when a later DMA allocation fails, and reject input, output, and MV buffers that are not DMA-reachable
 - Aligned encoder buffers to `esp_cache_get_alignment(caps)` (P4 INTERNAL L1 64 B, SPIRAM L2 128 B) and invalidated the CPU-written slice-header line before DMA, so GOP=1 I-frames are not corrupted when a SPIRAM output slot is only 64-byte aligned. M2C expand uses the line of that address, not the PSRAM line on INTERNAL pointers
