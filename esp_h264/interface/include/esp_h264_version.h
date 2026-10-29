@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.4.1"
+#define ESP_H264_VERSION "1.5.0"
 
 /**
  *  Features:
@@ -78,6 +78,13 @@ extern "C" {
  *     - Allocated the HW deblocking buffer from non-encrypted PSRAM when supported
  *     v1.4.1:
  *     - Fixed SW encoder YUV cache allocating 16 frames instead of one 16-byte-aligned I420 buffer
+ *     v1.5.0:
+ *     - Added ESP32-P4 dual-stream PPA, dual-generator, single-stream ROI, and one-by-one dual encode support
+ *     - Added ESP32-P4 hardware encoder light-sleep REGDMA retention
+ *     - Fixed IDF 6.0 flash-encryption compatibility, HW DMA buffer validation, and dual-encoder allocation cleanup
+ *     - Fixed HW encoder cache alignment, output overflow recovery, and dual force-IDR handling
+ *     - Fixed HW rate-control bounds and `none_roi_delta_qp` sign extension
+ *     - Fixed software decoder recovery after a corrupted slice header could dereference an empty DPB output entry
  */
 
 /**

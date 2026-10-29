@@ -2115,6 +2115,101 @@ TEST_CASE("sw_dec_data_error_test", "[esp_h264]")
     TEST_ASSERT_EQUAL(ESP_H264_ERR_FAIL, single_sw_dec_process(cfg, sps, inbuf_len, yuv));
 }
 
+/* Regression test for NULL pointer dereference in `h264bsdDecode` when a corrupted
+ * slice header leaves `picStarted = 1` and `validSliceInAccessUnit = 0`, and the caller
+ * continues feeding the next access unit into the same decoder instance without re-init. */
+TEST_CASE("sw_dec_corrupt_slice_header_recovery_test", "[esp_h264]")
+{
+    esp_h264_enc_cfg_sw_t enc_cfg = { 0 };
+    enc_cfg.gop = 2;
+    enc_cfg.fps = 30;
+    enc_cfg.res.width = res_width;
+    enc_cfg.res.height = res_height;
+    enc_cfg.rc.bitrate = enc_cfg.res.width * enc_cfg.res.height * enc_cfg.fps / 10;
+    enc_cfg.rc.qp_min = 20;
+    enc_cfg.rc.qp_max = 30;
+    enc_cfg.pic_type = ESP_H264_RAW_FMT_I420;
+
+    esp_h264_enc_handle_t enc = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_sw_new(&enc_cfg, &enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_open(enc));
+
+    uint32_t raw_len = (uint32_t)enc_cfg.res.width * enc_cfg.res.height * 3 / 2;
+    esp_h264_enc_in_frame_t enc_in = { 0 };
+    enc_in.raw_data.buffer = esp_h264_aligned_calloc(16, 1, raw_len, &raw_len, MALLOC_CAP_INTERNAL);
+    enc_in.raw_data.len = raw_len;
+    TEST_ASSERT_NOT_NULL(enc_in.raw_data.buffer);
+
+    esp_h264_enc_out_frame_t enc_out = { 0 };
+    uint32_t out_buf_len = raw_len;
+    enc_out.raw_data.buffer = esp_h264_aligned_calloc(16, 1, out_buf_len, &out_buf_len, MALLOC_CAP_INTERNAL);
+    enc_out.raw_data.len = out_buf_len;
+    TEST_ASSERT_NOT_NULL(enc_out.raw_data.buffer);
+
+    TEST_ASSERT_GREATER_THAN(0, read_enc_cb(&enc_in, enc_cfg.res.width, enc_cfg.res.height, enc_cfg.pic_type));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_process(enc, &enc_in, &enc_out));
+    TEST_ASSERT_GREATER_THAN(0, enc_out.length);
+
+    esp_h264_dec_cfg_sw_t dec_cfg = {
+        .pic_type = ESP_H264_RAW_FMT_I420,
+    };
+    esp_h264_dec_handle_t dec = NULL;
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_sw_new(&dec_cfg, &dec));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_open(dec));
+
+    /* Step 1: Take a copy of the valid encoded IDR AU (SPS + PPS + IDR slice) and corrupt
+     * the slice header (`slice_qp_delta` area) so that `h264bsdCheckAccessUnitBoundary`
+     * succeeds, `picStarted` is set to 1, SPS/PPS are activated, and `h264bsdDecodeSliceHeader`
+     * fails with `validSliceInAccessUnit = 0` and `dpb->numOut = 0`. */
+    uint8_t corrupt_au[128] = {
+        0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0xc0, 0x0b, 0x8c, 0x8d, 0x41, 0x02, 0x24, 0x03, 0xc2, 0x21, 0x1a, 0x80,
+        0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x3c, 0x80,
+        0x00, 0x00, 0x00, 0x01, 0x65, 0xb8, 0x00, 0x04, 0x00, 0x03, 0x00, 0x03, 0x00, 0x03, 0x00, 0x03, 0x80
+    };
+    esp_h264_dec_in_frame_t dec_in = {
+        .raw_data = {
+            .buffer = corrupt_au,
+            .len = 43,
+        },
+    };
+    esp_h264_dec_out_frame_t dec_out = { 0 };
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_FAIL, esp_h264_dec_process(dec, &dec_in, &dec_out));
+
+    /* Step 2: Feed a valid encoded AU to the SAME decoder without closing/re-opening it.
+     * Previously, the AU boundary check finalized the broken picture and called
+     * `h264bsdDpbOutputPicture(pStorage->dpb)->data` on a NULL return, crashing at line 513. */
+    dec_in.raw_data.buffer = enc_out.raw_data.buffer;
+    dec_in.raw_data.len = enc_out.length;
+    int decoded_pics = 0;
+    int guard = 0;
+    while (dec_in.raw_data.len > 0 && guard++ < 16) {
+        memset(&dec_out, 0, sizeof(dec_out));
+        esp_h264_err_t ret = esp_h264_dec_process(dec, &dec_in, &dec_out);
+        printf("recovery step %d: ret=%d consume=%u rem=%u out_size=%u outbuf=%p\n",
+               guard, (int)ret, (unsigned)dec_in.consume, (unsigned)dec_in.raw_data.len,
+               (unsigned)dec_out.out_size, dec_out.outbuf);
+        TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, ret);
+        TEST_ASSERT_GREATER_THAN(0, dec_in.consume);
+        dec_in.raw_data.buffer += dec_in.consume;
+        dec_in.raw_data.len -= dec_in.consume;
+        if (dec_out.out_size > 0) {
+            TEST_ASSERT_NOT_NULL(dec_out.outbuf);
+            TEST_ASSERT_EQUAL(raw_len, dec_out.out_size);
+            decoded_pics++;
+        } else {
+            TEST_ASSERT_NULL(dec_out.outbuf);
+        }
+    }
+    TEST_ASSERT_EQUAL(1, decoded_pics);
+
+    esp_h264_free(enc_in.raw_data.buffer);
+    esp_h264_free(enc_out.raw_data.buffer);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_close(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_enc_del(enc));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_close(dec));
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, esp_h264_dec_del(dec));
+}
+
 TEST_CASE("sw_enc_set_get_param_single_thread_test", "[esp_h264]")
 {
     esp_h264_enc_cfg_sw_t cfg = { 0 };
