@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Resetting the H264 module while a DMA channel still has an AXI burst in flight hangs the bus, and the next write to a DMA register store-faults. Create, close, and encode timeout now stop the encoder and wait until every channel is idle before that reset
+
 ## 1.5.0
 
 ### Features

@@ -5,6 +5,7 @@
  */
 
 #include "h264_hal.h"
+#include "h264_dma_hal.h"
 
 esp_h264_set_dev_t h264_hal_get_param_dev0(h264_hal_context_t *hal)
 {
@@ -198,8 +199,10 @@ void h264_hal_set_ori_color_space(volatile h264_ctrl_regs_t *ctrl, h264_ori_colo
 /*Init */
 void h264_hal_init(h264_hal_context_t *hal, h264_hal_context_cfg_t *cfg)
 {
-    /*Enable H264 system clock*/
+    /* Idle an already-clocked DMA before the module reset aborts an AXI burst. */
+    h264_dma_hal_idle();
     h264_ll_reset_register(0);
+    /*Enable H264 system clock*/
     h264_ll_enable_bus_clock(0, true);
     h264_ll_enable_dma_clock(0, true);
     h264_ll_set_dma_clock_source(0, 0);

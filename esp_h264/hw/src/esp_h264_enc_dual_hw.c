@@ -157,6 +157,7 @@ static inline esp_h264_err_t h264_hw_enc_frame_mode_process(esp_h264_hw_handle_t
     if (esp_h264_mutex_lock(hw_hd->frame_done, (TickType_t)1000) != pdTRUE) {
         *out_len = 0;
         uint32_t bs_intraw = h264_dma_hal_get_bs_intr(&hw_hd->dma2d_hal);
+        h264_dma_hal_idle();
         h264_hal_reset(&hw_hd->h264_hal);
         h264_dma_hal_reset_counter_dbtmp(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_ref(&hw_hd->dma2d_hal);
@@ -375,6 +376,7 @@ static esp_h264_err_t enc_close(esp_h264_enc_dual_handle_t enc)
         esp_h264_mutex_delete(hw_hd->frame_done);
         hw_hd->frame_done = NULL;
     }
+    h264_dma_hal_idle();
     h264_hal_reset(&hw_hd->h264_hal);
     h264_dma_hal_deinit(&hw_hd->dma2d_hal);
     return ESP_H264_ERR_OK;

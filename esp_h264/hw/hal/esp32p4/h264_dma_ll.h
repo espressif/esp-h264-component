@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -136,6 +136,40 @@ static inline void h264_dma_ll_set_all_burst_size(h264_dma_dev_t *dma, uint8_t b
         dma->dma_out_ch[i].conf0.out_mem_burst_length = burst_size;
     }
     dma->dma_in_ch5.conf0.in_mem_burst_length = burst_size;
+}
+
+/**
+ * @brief  Idle every H264 DMA channel without pulsing a channel reset
+ *
+ * Stop every channel before waiting. A channel can stay busy until its
+ * peer is also stopped, so waiting inside the first loop never returns.
+ * TX0-2 and RX0-4 disable new AXI commands. TX3 and TX4 have no
+ * command-disable bit; their links are stopped. RX5 is then disabled.
+ * cmd_disable is left set. The encoder core must already be stopped.
+ *
+ * @param  dma  DMA peripheral address
+ */
+static inline void h264_dma_ll_idle(h264_dma_dev_t *dma)
+{
+    for (uint8_t i = 0; i < 3; i++) {
+        dma->dma_out_ch[i].conf0.out_cmd_disable = 1;
+    }
+    for (uint8_t i = 0; i < H264_DMA_IN_OUT_CH_NUM; i++) {
+        dma->dma_in_ch[i].conf0.in_cmd_disable = 1;
+    }
+    dma->dma_out_ch[3].link_conf.outlink_stop = 1;
+    dma->dma_out_ch[4].link_conf.outlink_stop = 1;
+    dma->dma_in_ch5.conf0.in_cmd_disable = 1;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        while (!dma->dma_out_ch[i].state.out_reset_avail);
+    }
+    for (uint8_t i = 0; i < H264_DMA_IN_OUT_CH_NUM; i++) {
+        while (!dma->dma_in_ch[i].state.in_reset_avail);
+    }
+    while (!dma->dma_out_ch[3].link_conf.outlink_park);
+    while (!dma->dma_out_ch[4].link_conf.outlink_park);
+    while (!dma->dma_in_ch5.state.in_reset_avail);
 }
 
 /**
