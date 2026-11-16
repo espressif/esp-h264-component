@@ -17,6 +17,48 @@
 
 #if CONFIG_IDF_TARGET_ESP32P4
 
+#if CONFIG_ESP_H264_HW_ENCODER_PREFER_DB_SPIRAM
+/* Exercise the public encoder constructor with enough internal memory that
+ * an INTERNAL-first policy would succeed instead of falling back to SPIRAM. */
+TEST_CASE("hw_enc_db_prefers_spiram_without_consuming_internal_budget", "[esp_h264][db_spiram]")
+{
+    const uint32_t internal_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA;
+    if (heap_caps_get_largest_free_block(internal_caps) < 300 * 1024) {
+        TEST_IGNORE_MESSAGE("Needs a contiguous internal DMA extent for the policy counterexample");
+    }
+    if (heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM) < 300 * 1024) {
+        TEST_IGNORE_MESSAGE("Needs SPIRAM for a 400x400 encoder deblocking buffer");
+    }
+    esp_h264_enc_cfg_hw_t cfg = { 0 };
+    cfg.pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY;
+    cfg.gop = 10;
+    cfg.fps = 10;
+    cfg.res.width = 400;
+    cfg.res.height = 400;
+    cfg.rc.bitrate = 800000;
+    cfg.rc.qp_min = 26;
+    cfg.rc.qp_max = 26;
+    const size_t internal_before = heap_caps_get_free_size(internal_caps);
+    const size_t spiram_before = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    esp_h264_enc_handle_t enc = NULL;
+    esp_h264_err_t result = esp_h264_enc_hw_new(&cfg, &enc);
+    const size_t internal_after = heap_caps_get_free_size(internal_caps);
+    const size_t spiram_after = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    esp_h264_err_t deleted = ESP_H264_ERR_FAIL;
+    if (enc != NULL) {
+        deleted = esp_h264_enc_del(enc);
+    }
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, result);
+    TEST_ASSERT_EQUAL(ESP_H264_ERR_OK, deleted);
+    /* The 240000-byte image working set must be external. The small reference
+     * window, temporary rows and descriptors must retain their internal DMA
+     * allocation. These bounds do not copy the private allocation formula. */
+    TEST_ASSERT_LESS_OR_EQUAL(spiram_before, spiram_after);
+    TEST_ASSERT_GREATER_OR_EQUAL(240000, spiram_before - spiram_after);
+    TEST_ASSERT_LESS_THAN(100 * 1024, internal_before - internal_after);
+}
+#endif
+
 /* Same formulas as max_refame_buffer_size() / esp_h264_enc_hw_max_db_tmp_buffer_size(). */
 #define DMA_RTC_DB4_ROW          (16 * 4 + 8 * 4 * 2)
 #define DMA_RTC_REF_PER_MB       (3 * 16 * (16 + 8))

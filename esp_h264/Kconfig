@@ -38,4 +38,13 @@ menu "ESP H264 Configuration"
         help
             The second task priority for H264 decoder task.
 
+    config ESP_H264_HW_ENCODER_PREFER_DB_SPIRAM
+        bool "Prefer SPIRAM for the hardware encoder deblocking buffer"
+        depends on IDF_TARGET_ESP32P4 && SPIRAM
+        default n
+        help
+            Prefer SPIRAM for the hardware encoder deblocking buffer, with
+            internal DMA-capable memory as a fallback. This preserves internal
+            memory when the encoder runs alongside other DMA workloads.
+
 endmenu
