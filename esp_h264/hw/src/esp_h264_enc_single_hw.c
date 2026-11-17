@@ -158,6 +158,7 @@ static esp_h264_err_t h264_hw_enc_gop_mode_process(esp_h264_hw_handle_t *hw_hd, 
         *out_len = 0;
         uint32_t bs_intraw = h264_dma_hal_get_bs_intr(&hw_hd->dma2d_hal);
         uint32_t h264_st = h264_hal_get_intr_status(&hw_hd->h264_hal);
+        h264_dma_hal_idle();
         h264_hal_reset(&hw_hd->h264_hal);
         h264_dma_hal_reset_counter_dbtmp(&hw_hd->dma2d_hal);
         h264_dma_hal_reset_counter_db(&hw_hd->dma2d_hal);
@@ -276,7 +277,8 @@ static esp_h264_err_t enc_close(esp_h264_enc_handle_t enc)
     }
     /** Clear all interrupts */
     h264_hal_ena_intr(&hw_hd->h264_hal, 0);
-    /** Reset H.264 */
+    /** Idle DMA, then reset the encoder core */
+    h264_dma_hal_idle();
     h264_hal_reset(&hw_hd->h264_hal);
     /** Close DMA */
     h264_dma_hal_deinit(&hw_hd->dma2d_hal);

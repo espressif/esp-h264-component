@@ -78,6 +78,17 @@ void h264_dma_hal_init(h264_dma_hal_context_t *hal, h264_hal_dma_context_cfg_t *
 void h264_dma_hal_deinit(h264_dma_hal_context_t *hal);
 
 /**
+ * @brief  Idle H264 DMA when its clocks are already on
+ *
+ * No effect when the H264 bus clock or DMA clock is off. Pulses
+ * sys_rst_pulse so the encoder releases DMA, then disables every
+ * channel. Does not pulse a channel reset and leaves command disable
+ * set. Call this before the H264 module reset while a transfer may
+ * still be open.
+ */
+void h264_dma_hal_idle(void);
+
+/**
  * @brief  Get DMA interrput of the encoder data
  *
  * @param  hal  Context of the HAL layer

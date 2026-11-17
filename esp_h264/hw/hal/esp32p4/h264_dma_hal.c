@@ -1,10 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "h264_dma_hal.h"
+#include "h264_ll.h"
+#include "soc/hp_sys_clkrst_struct.h"
 
 void h264_dma_hal_init(h264_dma_hal_context_t *hal, h264_hal_dma_context_cfg_t *cfg)
 {
@@ -23,6 +25,17 @@ void h264_dma_hal_init(h264_dma_hal_context_t *hal, h264_hal_dma_context_cfg_t *
 void h264_dma_hal_deinit(h264_dma_hal_context_t *hal)
 {
     h264_dma_ll_set_all_link_stop(hal->dev);
+}
+
+void h264_dma_hal_idle(void)
+{
+    if (!HP_SYS_CLKRST.soc_clk_ctrl1.reg_h264_sys_clk_en ||
+            !HP_SYS_CLKRST.peri_clk_ctrl26.reg_h264_clk_en) {
+        return;
+    }
+    /* The encoder keeps a channel out of reset_avail until this core stops. */
+    h264_ll_reset(H264_LL_GET_HW());
+    h264_dma_ll_idle(H264_DMA_LL_GET_HW());
 }
 
 uint32_t h264_dma_hal_get_bs_intr(h264_dma_hal_context_t *hal)
