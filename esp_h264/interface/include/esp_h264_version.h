@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define ESP_H264_VERSION "1.5.0"
+#define ESP_H264_VERSION "1.5.1"
 
 /**
  *  Features:
@@ -85,6 +85,9 @@ extern "C" {
  *     - Fixed HW encoder cache alignment, output overflow recovery, and dual force-IDR handling
  *     - Fixed HW rate-control bounds and `none_roi_delta_qp` sign extension
  *     - Fixed software decoder recovery after a corrupted slice header could dereference an empty DPB output entry
+ *     v1.5.1:
+ *     - Fixed a Store Fault in H.264 NAL unit parsing caused by modifying read-only buffers
+ *     - Fixed a bus hang during H.264 module reset by ensuring all DMA channels are idle before reset
  */
 
 /**

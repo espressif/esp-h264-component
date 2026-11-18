@@ -1,9 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.5.1
 
 ### Fixes
 
+- Rebuilt `libtinyh264.a` from tinyh264 `c768ef6`. Emulation-prevention removal no longer writes a const Annex-B buffer, so ESP32-P4 no longer store-faults in `h264bsdExtractNalUnit`. Writable buffers can still opt into in-place removal with `h264bsdSetBitstreamMutable()`
 - Resetting the H264 module while a DMA channel still has an AXI burst in flight hangs the bus, and the next write to a DMA register store-faults. Create, close, and encode timeout now stop the encoder and wait until every channel is idle before that reset
 
 ## 1.5.0
