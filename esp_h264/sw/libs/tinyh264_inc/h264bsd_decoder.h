@@ -78,6 +78,9 @@ typedef struct {
 
 u32 h264bsdInit(h264bsd_hd_t hd, u32 noOutputReordering);
 u32 h264bsdDecode(h264bsd_hd_t hd, u8 *byteStrm, u32 *len, u8 **picture, u32 *width, u32 *height);
+/* Input is read-only by default. Set to 1 only for writable caller buffers.
+ * Configure before decoding; takes effect on the next extracted NAL. */
+void h264bsdSetBitstreamMutable(h264bsd_hd_t hd, u32 bitstreamMutable);
 void h264bsdShutdown(h264bsd_hd_t hd);
 u32 h264bsdDecodeInternal(h264bsd_hd_t hd, u8 *byteStrm, u32 len, u32 *readBytes, u32 *width, u32 *height);
 h264bsd_hd_t h264bsdAlloc(h264bsd_cfg_t *cfg);
