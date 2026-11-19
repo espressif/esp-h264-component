@@ -23,6 +23,13 @@ def test_h264_hw_esp32p4_v3(dut: IdfDut) -> None:
 
 
 @pytest.mark.esp32p4
+@pytest.mark.parametrize('target', ['esp32p4'], indirect=True)
+@pytest.mark.parametrize('config', ['p4_db_spiram'], indirect=True)
+def test_h264_hw_db_spiram(dut: IdfDut) -> None:
+    dut.run_all_single_board_cases(group='db_spiram', timeout=60)
+
+
+@pytest.mark.esp32p4
 @pytest.mark.flash_encryption
 @pytest.mark.parametrize('target', ['esp32p4'], indirect=True)
 @pytest.mark.parametrize('config', ['flash_enc'], indirect=True)

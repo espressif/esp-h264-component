@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include "esp_memory_utils.h"
 #include "esp_h264_alloc.h"
 #include "esp_h264_enc_hw_param.h"
 
@@ -384,8 +385,14 @@ esp_h264_err_t esp_h264_enc_hw_new_param(esp_h264_enc_hw_param_cfg_t *cfg, esp_h
     /** Allocated reference frame and DB memory (malloc: large buffers, no need to zero) */
     param->ref = (uint8_t *)esp_h264_aligned_malloc(H264_DMA_ALIGN, 1, max_refame_buffer_size(param->mb_width), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
     ESP_H264_GOTO_ON_FALSE(param->ref, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for reference frame");
+#if CONFIG_ESP_H264_HW_ENCODER_PREFER_DB_SPIRAM
+    param->db = (uint8_t *)esp_h264_malloc_prefer(1, max_db_buffer_size(param->mb_width, param->mb_height), &actual_size, ESP_H264_MEM_SPIRAM, ESP_H264_MEM_INTERNAL_DMA);
+#else
     param->db = (uint8_t *)esp_h264_malloc_prefer(1, max_db_buffer_size(param->mb_width, param->mb_height), &actual_size, ESP_H264_MEM_INTERNAL_DMA, ESP_H264_MEM_SPIRAM);
+#endif
     ESP_H264_GOTO_ON_FALSE(param->db, ESP_H264_ERR_MEM, __exit__, TAG, "No memory for data");
+    ESP_H264_LOGI(TAG, "DB allocation: bytes=%u internal=%d spiram=%d", (unsigned int)actual_size,
+                  esp_ptr_internal(param->db), esp_ptr_external_ram(param->db));
 
     /** Allocated descriptor memory*/
     param->dsc_ref = (h264_dma_desc_t *)esp_h264_aligned_calloc(H264_DMA_ALIGN, 1, sizeof(h264_dma_desc_t), &actual_size, ESP_H264_MEM_INTERNAL_DMA);
